@@ -3,17 +3,20 @@ package jp.cccis.jarun;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.ParseException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.apache.ivy.Ivy;
 import org.apache.ivy.core.cache.DefaultRepositoryCacheManager;
 import org.apache.ivy.core.cache.RepositoryCacheManager;
 import org.apache.ivy.core.module.descriptor.Artifact;
+import org.apache.ivy.core.module.descriptor.ModuleDescriptor;
 import org.apache.ivy.core.module.id.ModuleId;
 import org.apache.ivy.core.module.id.ModuleRevisionId;
 import org.apache.ivy.core.report.ArtifactDownloadReport;
@@ -43,36 +46,67 @@ public class Retriever {
 		this.ivy = Ivy.newInstance(settings);
 	}
 
-	public ResolveReport fetch(final Path dir, final String organization, final String name, final String revision,
+	public ResolveReport resolve(final String organisation, final String name, final String revision,
 			final String scope)
 			throws ParseException, IOException {
-		ModuleId modId = new ModuleId(organization, name);
+		ModuleId modId = new ModuleId(organisation, name);
 		ModuleRevisionId id = new ModuleRevisionId(modId, revision);
 		ResolveOptions resolveOptions = new ResolveOptions().setConfs(new String[] { scope });
 		resolveOptions.setDownload(true);
-		ResolveReport resolveReport = this.ivy.resolve(id, resolveOptions, true);
-		for (Object obj : resolveReport.getDependencies()) {
-			IvyNode in = (IvyNode) obj;
-			if (in.getId() == id) {
-				downloadRootNode(in);
-			}
-		}
-
-		RetrieveOptions retrieveOptions = new RetrieveOptions().setConfs(new String[] { scope });
-		retrieveOptions.setDestArtifactPattern(dir + "/[artifact]-[revision].[ext]");
-		RetrieveEngine engine = this.ivy.getRetrieveEngine();
-		ModuleRevisionId md = resolveReport.getModuleDescriptor().getResolvedModuleRevisionId();
-		RetrieveReport report = engine.retrieve(md, retrieveOptions);
-		return resolveReport;
+		return this.ivy.resolve(id, resolveOptions, true);
 	}
 
-	private void downloadRootNode(final IvyNode in) {
+	private static Path linkOrCopy(final Path dest, final Path existing) throws IOException {
+		IOException ex;
+		try {
+			Files.createLink(dest, existing);
+			return dest;
+		} catch (IOException e) {
+			ex = e;
+		}
+		try {
+			Files.createSymbolicLink(dest, existing);
+			return dest;
+		} catch (IOException e) {
+			e.addSuppressed(ex);
+			ex = e;
+		}
+		try {
+			Files.copy(existing, dest);
+		} catch (IOException e) {
+			e.addSuppressed(ex);
+			throw e;
+		}
+		return dest;
+	}
+
+	public RetrieveReport retrieve(final Path dir, final ResolveReport resolveReport) throws IOException {
+		ModuleDescriptor md = resolveReport.getModuleDescriptor();
+		ArtifactDownloadReport[] rootReports = downloadRoot(resolveReport.getDependencies(), md.getModuleRevisionId());
+		RetrieveOptions retrieveOptions = new RetrieveOptions().setConfs(resolveReport.getConfigurations());
+		retrieveOptions.setDestArtifactPattern(dir + "/[artifact]-[revision].[ext]");
+		RetrieveEngine engine = this.ivy.getRetrieveEngine();
+		RetrieveReport reports = engine.retrieve(md.getResolvedModuleRevisionId(), retrieveOptions);
+		Path root = reports.getRetrieveRoot().toPath();
+		for (ArtifactDownloadReport rr : rootReports) {
+			File base = rr.getLocalFile();
+			Path dest = linkOrCopy(root.resolve(base.getName()), base.toPath());
+			reports.addCopiedFile(dest.toFile(), rr);
+		}
+		return reports;
+	}
+
+	private static ArtifactDownloadReport[] downloadRoot(final List<IvyNode> nodes, final ModuleRevisionId rootId)
+			throws IOException {
+		Optional<IvyNode> rootNode = nodes.stream().filter(n -> n.getId() == rootId).findFirst();
+		return rootNode.map(Retriever::downloadNode).orElseThrow(IOException::new);
+	}
+
+	private static ArtifactDownloadReport[] downloadNode(final IvyNode in) {
 		DependencyResolver resolver = in.getModuleRevision().getResolver();
 		Artifact[] master = in.getDescriptor().getArtifacts("master");
 		DownloadReport downloaded = resolver.download(master, new DownloadOptions());
-		for (ArtifactDownloadReport reports : downloaded.getArtifactsReports()) {
-			System.out.println(reports.getLocalFile());
-		}
+		return downloaded.getArtifactsReports();
 	}
 
 	private static RepositoryResolver buildResolver(final URI root) {
