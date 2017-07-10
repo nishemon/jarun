@@ -52,7 +52,6 @@ run_parser.set_defaults(handler=run)
 def install(conf, args):
 	sysjava = new_sys_java(conf)
 	target = './lib'
-	os.mkdir(target)
 	code,output = sysjava.sysRun(['Install', target, 'runtime', args.artifact], conf.toDict())
 
 install_parser = subparsers.add_parser('install', help='Download jars.')
@@ -69,7 +68,8 @@ update_parser.add_argument('artifact')
 update_parser.set_defaults(handler=update)
 
 def main():
-	conf = Conf.CoreConf(['/etc/jarun.conf'])
+	gconffile = os.environ.get('JARUN_CONF_FILE', '/etc/jarun.conf')
+	conf = Conf.CoreConf([gconffile])
 	args = parser.parse_args()
 	args.handler(conf, args)
 

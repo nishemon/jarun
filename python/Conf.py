@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # coding:UTF-8
 
+import os
+
 import ConfigParser
 
 MAIN_SECTION='jarun'
@@ -21,20 +23,20 @@ class CoreConf:
 	def __init__(self, conffiles):
 		parser = ConfigParser.ConfigParser()
 		self.jvm = None
-		self.repositories = {}
+		self.repositories = ''
 		for cf in conffiles:
 			if not os.path.exists(cf):
 				pass # todo
 			parser.read(cf)
 			self.__dict__.update(dict(parser.items(MAIN_SECTION)))
-			repos = {}
-			for reponame in self.repositories.split(','):
-				repo = RepositoryConf(parser, reponame))
-				repos[repo.name] = repo
-			self.repositories = repos
+		repos = []
+		for reponame in self.repositories.split(','):
+			repos.append(RepositoryConf(parser, reponame))
+		self.repositories = repos
 
 	def toDict(self):
 		return {
-			'repositores': [x.toDict() for x in self.repositories]
+			'workdir': self.workdir,
+			'repositories': [x.toDict() for x in self.repositories]
 		}
 

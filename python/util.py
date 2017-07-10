@@ -64,6 +64,7 @@ def downloadPackage(repos, org, name, save, verstr=None):
 	return None
 
 def getsysjars(repos, dest):
+	print repos
 	repourls = [x.baseurl for x in repos if x.type == 'maven']
 	downloadPackage(repourls, 'org.apache.ivy', 'ivy', dest)
 	downloadPackage(['http://maven.cccis.jp.s3.amazonaws.com/release'], 'jp.cccis.jarun', 'jarun', dest)

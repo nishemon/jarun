@@ -1,7 +1,7 @@
 package jp.cccis.jarun.configure;
 
 import java.io.File;
-import java.util.Arrays;
+import java.util.List;
 
 import org.apache.ivy.core.cache.DefaultRepositoryCacheManager;
 import org.apache.ivy.plugins.resolver.ChainResolver;
@@ -13,7 +13,7 @@ import lombok.Data;
 public class Configuration {
 	private boolean fast;
 	private String workdir;
-	private Repository[] repositories;
+	private List<Repository> repositories;
 
 	public static Retriever build(final Configuration conf) throws IllegalConfigurationException {
 		DefaultRepositoryCacheManager cm = new DefaultRepositoryCacheManager();
@@ -23,7 +23,7 @@ public class Configuration {
 		cm.setBasedir(cacheDir);
 		ChainResolver resolver = new ChainResolver();
 		resolver.setReturnFirst(conf.fast);
-		Arrays.stream(conf.repositories).map(Repository::build).forEach(resolver::add);
+		conf.repositories.stream().map(Repository::build).forEach(resolver::add);
 
 		return new Retriever(cm, resolver);
 	}

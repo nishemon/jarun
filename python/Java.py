@@ -6,7 +6,7 @@ import json
 
 import util
 
-SYS_NAMESPACE='jp.cccis.jarun'
+SYS_NAMESPACE='jp.cccis.jarun.slavemode'
 
 class Java:
 	def __init__(self, conf):
@@ -27,11 +27,11 @@ class Java:
 
 	def add_classpath(self, classpath, isJarDir=True):
 		if isJarDir:
-			self.classpath.append(classpath + '/*.jar')
+			self.classpath.append(classpath + '/*')
 		else:
 			self.classpath.append(classpath)
 
-	def sysRun(self, args, stdinValues):
+	def sysRun(self, args, inconfs):
 		cmds = [self.javabin, '-classpath', ':'.join(self.classpath)]
 		if isinstance(args, list):
 			start = len(cmds)
@@ -39,7 +39,10 @@ class Java:
 			cmds[start] = SYS_NAMESPACE + '.' + cmds[start]
 		else:
 			cmds.append(SYS_NAMESPACE + '.' + args)
-		print cmds
+		print json.dumps(inconfs)
+		proc = subprocess.Popen(cmds,stdin=subprocess.PIPE,stdout=subprocess.PIPE)
+		stdout,_ = proc.communicate(json.dumps(inconfs))
+		return (proc.poll(), json.loads(stdout) if stdout else {})
 
 def find_cmd(paths, name):
 	return [b for b in [os.path.join(p, name) for p in paths] if os.access(b, os.X_OK)]

@@ -43,20 +43,25 @@ public class Retriever {
 		settings.addResolver(resolver);
 		settings.setDefaultResolver(resolver.getName());
 		settings.addRepositoryCacheManager(cacheManager);
+		settings.setDefaultRepositoryCacheManager(cacheManager);
 		this.ivy = Ivy.newInstance(settings);
 	}
 
-	public ResolveReport resolve(final String organisation, final String name, final String revision,
-			final String scope)
-			throws ParseException, IOException {
+	public static ModuleRevisionId makeRevision(final String organisation, final String name, final String revision) {
 		ModuleId modId = new ModuleId(organisation, name);
-		ModuleRevisionId id = new ModuleRevisionId(modId, revision);
+		return new ModuleRevisionId(modId, revision);
+	}
+
+	public ResolveReport resolve(final ModuleRevisionId id, final String scope)
+			throws ParseException, IOException {
 		ResolveOptions resolveOptions = new ResolveOptions().setConfs(new String[] { scope });
 		resolveOptions.setDownload(true);
 		return this.ivy.resolve(id, resolveOptions, true);
 	}
 
 	private static Path linkOrCopy(final Path dest, final Path existing) throws IOException {
+		Files.createDirectories(dest.getParent());
+
 		IOException ex;
 		try {
 			Files.createLink(dest, existing);
@@ -80,9 +85,10 @@ public class Retriever {
 		return dest;
 	}
 
-	public RetrieveReport retrieve(final Path dir, final ResolveReport resolveReport) throws IOException {
+	public RetrieveReport retrieve(final Path dir, final ResolveReport resolveReport, final ModuleRevisionId originalId)
+			throws IOException {
 		ModuleDescriptor md = resolveReport.getModuleDescriptor();
-		ArtifactDownloadReport[] rootReports = downloadRoot(resolveReport.getDependencies(), md.getModuleRevisionId());
+		ArtifactDownloadReport[] rootReports = downloadRoot(resolveReport.getDependencies(), originalId);
 		RetrieveOptions retrieveOptions = new RetrieveOptions().setConfs(resolveReport.getConfigurations());
 		retrieveOptions.setDestArtifactPattern(dir + "/[artifact]-[revision].[ext]");
 		RetrieveEngine engine = this.ivy.getRetrieveEngine();
@@ -122,7 +128,8 @@ public class Retriever {
 
 	public static void main(final String... args) throws ParseException, IOException {
 		DefaultRepositoryCacheManager cm = new DefaultRepositoryCacheManager();
-		cm.setBasedir(new File("/var/cache/jarun/ivy"));
+		new File("./ivy").mkdirs();
+		cm.setBasedir(new File("./ivy"));
 		List<RepositoryResolver> resolverList = Arrays.stream(args, 0, args.length - 1).map(URI::create)
 				.map(Retriever::buildResolver).collect(Collectors.toList());
 		ChainResolver resolver = new ChainResolver();
@@ -132,6 +139,8 @@ public class Retriever {
 		Retriever retriever = new Retriever(cm, resolver);
 		String art = args[args.length - 1];
 		String[] v = art.split(":", 3);
-		retriever.fetch(Paths.get("./lib"), v[0], v[1], v[2], "runtime");
+		ModuleRevisionId rootId = Retriever.makeRevision(v[0], v[1], v[2]);
+		ResolveReport report = retriever.resolve(rootId, "runtime");
+		retriever.retrieve(Paths.get("./lib"), report, rootId);
 	}
 }

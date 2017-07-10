@@ -6,6 +6,7 @@ import java.text.ParseException;
 
 import javax.script.ScriptException;
 
+import org.apache.ivy.core.module.id.ModuleRevisionId;
 import org.apache.ivy.core.report.ResolveReport;
 import org.apache.ivy.core.retrieve.RetrieveReport;
 
@@ -18,7 +19,8 @@ public class Install {
 		Configuration config = JsonParser.parse(System.in, Configuration.class);
 		Retriever retriever = Configuration.build(config);
 		String[] cols = args[2].split(":");
-		ResolveReport resolved = retriever.resolve(cols[0], cols[1], cols[2], args[1]);
-		RetrieveReport reported = retriever.retrieve(Paths.get(args[0]), resolved);
+		ModuleRevisionId rootId = Retriever.makeRevision(cols[0], cols[1], cols[2]);
+		ResolveReport resolved = retriever.resolve(rootId, args[1]);
+		RetrieveReport reported = retriever.retrieve(Paths.get(args[0]), resolved, rootId);
 	}
 }

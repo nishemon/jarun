@@ -4,7 +4,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import javax.script.Invocable;
 import javax.script.ScriptEngine;
@@ -23,20 +25,26 @@ public class JsonParser {
 			br.lines().forEach(builder::append);
 			ScriptEngineManager manager = new ScriptEngineManager();
 			ScriptEngine engine = manager.getEngineByName("JavaScript");
-			InputStream is = JsonParser.class.getResourceAsStream("JsonParser.js");
-			engine.eval(new InputStreamReader(is, StandardCharsets.UTF_8));
+			InputStream jsr = JsonParser.class.getClassLoader().getResourceAsStream("JsonParser.js");
+			engine.eval(new InputStreamReader(jsr, StandardCharsets.UTF_8));
 			Invocable invocable = (Invocable) engine;
-			return (Configuration) invocable.invokeFunction("convert", builder.toString(), clazz.getName());
+			String json = builder.toString();
+			Configuration c = (Configuration) invocable.invokeFunction("convert", json, clazz.getName());
+			@SuppressWarnings("unchecked")
+			List<Repository> repositories = (List<Repository>) invocable.invokeFunction("convertArray", json,
+					"repositories",
+					Repository.class.getName());
+			c.setRepositories(repositories);
+			return c;
 		} catch (IOException e) {
-			// log.error("unknown exception", e);
-			e.printStackTrace();
+			throw new UncheckedIOException(e);
 		}
 	}
 
 	public static void main(final String[] args) throws ScriptException, NoSuchMethodException {
 		ScriptEngineManager manager = new ScriptEngineManager();
 		ScriptEngine engine = manager.getEngineByName("JavaScript");
-		InputStream is = JsonParser.class.getResourceAsStream("JsonParser.js");
+		InputStream is = JsonParser.class.getClassLoader().getResourceAsStream("JsonParser.js");
 		engine.eval(new InputStreamReader(is, StandardCharsets.UTF_8));
 		Invocable invocable = (Invocable) engine;
 		Object ret = invocable.invokeFunction("convert", "{\"baeurl\":\"http://cccis.jp/\"}",

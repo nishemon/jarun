@@ -23,3 +23,6 @@ gradle.properties
 bin/
 *~
 *.sw?
+*.egg-info
+*.pyc
+
