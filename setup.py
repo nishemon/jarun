@@ -28,14 +28,14 @@ version = next(
 )
 
 setup(
-    name="jarun",
+    name="marun",
     version=version,
-    url='https://github.com/nishemon/jarun',
+    url='https://github.com/nishemon/marun',
     author='S.Takai',
     author_email='shtk@cccis.jp',
     maintainer='S.Takai',
     maintainer_email='shtk@cccis.jp',
-    description='Java Artifact RUNner. Get jar files from maven repository and run it.',
+    description='Maven Artifact RUNner. Get jar files from maven repository and run it.',
     long_description=readme,
     packages=find_packages(),
     install_requires=_requires_from_file('requirements.txt'),
@@ -47,7 +47,7 @@ setup(
     entry_points="""
       # -*- Entry points: -*-
       [console_scripts]
-      jarun = python.jarun:main
+      marun = python.marun:main
     """,
 )
 

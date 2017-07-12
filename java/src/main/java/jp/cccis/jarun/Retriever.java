@@ -5,11 +5,11 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.apache.ivy.Ivy;
@@ -21,13 +21,12 @@ import org.apache.ivy.core.module.id.ModuleId;
 import org.apache.ivy.core.module.id.ModuleRevisionId;
 import org.apache.ivy.core.report.ArtifactDownloadReport;
 import org.apache.ivy.core.report.DownloadReport;
+import org.apache.ivy.core.report.DownloadStatus;
 import org.apache.ivy.core.report.ResolveReport;
 import org.apache.ivy.core.resolve.DownloadOptions;
 import org.apache.ivy.core.resolve.IvyNode;
 import org.apache.ivy.core.resolve.ResolveOptions;
-import org.apache.ivy.core.retrieve.RetrieveEngine;
-import org.apache.ivy.core.retrieve.RetrieveOptions;
-import org.apache.ivy.core.retrieve.RetrieveReport;
+import org.apache.ivy.core.resolve.ResolvedModuleRevision;
 import org.apache.ivy.core.settings.IvySettings;
 import org.apache.ivy.plugins.resolver.BintrayResolver;
 import org.apache.ivy.plugins.resolver.ChainResolver;
@@ -52,10 +51,10 @@ public class Retriever {
 		return new ModuleRevisionId(modId, revision);
 	}
 
-	public ResolveReport resolve(final ModuleRevisionId id, final String scope)
+	public ResolveReport resolve(final ModuleRevisionId id, final String scope, final boolean resolveOnly)
 			throws ParseException, IOException {
 		ResolveOptions resolveOptions = new ResolveOptions().setConfs(new String[] { scope });
-		resolveOptions.setDownload(true);
+		resolveOptions.setDownload(!resolveOnly);
 		return this.ivy.resolve(id, resolveOptions, true);
 	}
 
@@ -85,34 +84,42 @@ public class Retriever {
 		return dest;
 	}
 
-	public RetrieveReport retrieve(final Path dir, final ResolveReport resolveReport, final ModuleRevisionId originalId)
-			throws IOException {
+	public static List<ArtifactDownloadReport> retrieve(final ResolveReport resolveReport,
+			final ModuleRevisionId originalId) {
+		List<ModuleRevisionId> idList = new ArrayList<>();
 		ModuleDescriptor md = resolveReport.getModuleDescriptor();
-		ArtifactDownloadReport[] rootReports = downloadRoot(resolveReport.getDependencies(), originalId);
-		RetrieveOptions retrieveOptions = new RetrieveOptions().setConfs(resolveReport.getConfigurations());
-		retrieveOptions.setDestArtifactPattern(dir + "/[artifact]-[revision].[ext]");
-		RetrieveEngine engine = this.ivy.getRetrieveEngine();
-		RetrieveReport reports = engine.retrieve(md.getResolvedModuleRevisionId(), retrieveOptions);
-		Path root = reports.getRetrieveRoot().toPath();
-		for (ArtifactDownloadReport rr : rootReports) {
-			File base = rr.getLocalFile();
-			Path dest = linkOrCopy(root.resolve(base.getName()), base.toPath());
-			reports.addCopiedFile(dest.toFile(), rr);
+		List<ArtifactDownloadReport> reports = new ArrayList<>();
+		for (IvyNode node : (List<IvyNode>) resolveReport.getDependencies()) {
+			List<ArtifactDownloadReport> results = downloadNode(node);
+			if (results.isEmpty()) {
+				idList.add(node.getId());
+			} else {
+				for (ArtifactDownloadReport r : results) {
+					if (r.getDownloadStatus() != DownloadStatus.FAILED) {
+						reports.add(r);
+					}
+				}
+			}
 		}
 		return reports;
 	}
 
-	private static ArtifactDownloadReport[] downloadRoot(final List<IvyNode> nodes, final ModuleRevisionId rootId)
-			throws IOException {
-		Optional<IvyNode> rootNode = nodes.stream().filter(n -> n.getId() == rootId).findFirst();
-		return rootNode.map(Retriever::downloadNode).orElseThrow(IOException::new);
-	}
+	// private static ArtifactDownloadReport[] downloadRoot(final List<IvyNode> nodes, final
+	// ModuleRevisionId rootId)
+	// throws IOException {
+	// Optional<IvyNode> rootNode = nodes.stream().filter(n -> n.getId() == rootId).findFirst();
+	// return rootNode.map(Retriever::downloadNode).orElseThrow(IOException::new);
+	// }
 
-	private static ArtifactDownloadReport[] downloadNode(final IvyNode in) {
+	private static List<ArtifactDownloadReport> downloadNode(final IvyNode in) {
+		ResolvedModuleRevision resolved = in.getModuleRevision();
+		if (resolved == null) {
+			return Collections.emptyList();
+		}
 		DependencyResolver resolver = in.getModuleRevision().getResolver();
 		Artifact[] master = in.getDescriptor().getArtifacts("master");
 		DownloadReport downloaded = resolver.download(master, new DownloadOptions());
-		return downloaded.getArtifactsReports();
+		return Arrays.asList(downloaded.getArtifactsReports());
 	}
 
 	private static RepositoryResolver buildResolver(final URI root) {
@@ -140,7 +147,7 @@ public class Retriever {
 		String art = args[args.length - 1];
 		String[] v = art.split(":", 3);
 		ModuleRevisionId rootId = Retriever.makeRevision(v[0], v[1], v[2]);
-		ResolveReport report = retriever.resolve(rootId, "runtime");
-		retriever.retrieve(Paths.get("./lib"), report, rootId);
+		ResolveReport report = retriever.resolve(rootId, "runtime", false);
+		Retriever.retrieve(report, rootId);
 	}
 }

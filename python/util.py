@@ -67,7 +67,7 @@ def getsysjars(repos, dest):
 	print repos
 	repourls = [x.baseurl for x in repos if x.type == 'maven']
 	downloadPackage(repourls, 'org.apache.ivy', 'ivy', dest)
-	downloadPackage(['http://maven.cccis.jp.s3.amazonaws.com/release'], 'jp.cccis.jarun', 'jarun', dest)
+	downloadPackage(['http://maven.cccis.jp.s3.amazonaws.com/release'], 'jp.cccis.marun', 'marun', dest)
 
 def find_cmds(paths, name):
         return [b for b in [os.path.join(p, name) for p in paths] if os.access(b, os.X_OK)]

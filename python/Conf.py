@@ -5,7 +5,7 @@ import os
 
 import ConfigParser
 
-MAIN_SECTION='jarun'
+MAIN_SECTION='marun'
 
 
 class RepositoryConf:

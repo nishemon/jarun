@@ -6,7 +6,7 @@ import json
 
 import util
 
-SYS_NAMESPACE='jp.cccis.jarun.slavemode'
+SYS_NAMESPACE='jp.cccis.marun.slavemode'
 
 class Java:
 	def __init__(self, conf):

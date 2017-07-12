@@ -22,7 +22,7 @@ def new_sys_java(conf):
 	return java
 
 
-parser = argparse.ArgumentParser(prog='jarun')
+parser = argparse.ArgumentParser(prog='marun')
 parser.add_argument('-u', '--update', help='update befor run.')
 parser.add_argument('-f', '--flavors', help='append flavors', action='append')
 parser.add_argument('-v', '--verbose', help='vebose', action='count')
@@ -68,7 +68,7 @@ update_parser.add_argument('artifact')
 update_parser.set_defaults(handler=update)
 
 def main():
-	gconffile = os.environ.get('JARUN_CONF_FILE', '/etc/jarun.conf')
+	gconffile = os.environ.get('MARUN_CONF_FILE', '/etc/marun.conf')
 	conf = Conf.CoreConf([gconffile])
 	args = parser.parse_args()
 	args.handler(conf, args)
