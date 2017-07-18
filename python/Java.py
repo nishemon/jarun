@@ -3,10 +3,10 @@
 
 import subprocess
 import json
+import sys
 
 import util
-
-SYS_NAMESPACE='jp.cccis.marun.slavemode'
+import Consts
 
 class Java:
 	def __init__(self, conf):
@@ -36,11 +36,11 @@ class Java:
 		if isinstance(args, list):
 			start = len(cmds)
 			cmds.extend(args)
-			cmds[start] = SYS_NAMESPACE + '.' + cmds[start]
+			cmds[start] = Consts.JAVA_CLI_PACKAGE + '.' + cmds[start]
 		else:
-			cmds.append(SYS_NAMESPACE + '.' + args)
+			cmds.append(Consts.JAVA_CLI_PACKAGE + '.' + args)
 		print json.dumps(inconfs)
-		proc = subprocess.Popen(cmds,stdin=subprocess.PIPE,stdout=subprocess.PIPE)
+		proc = subprocess.Popen(cmds,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=sys.stdout)
 		stdout,_ = proc.communicate(json.dumps(inconfs))
 		return (proc.poll(), json.loads(stdout) if stdout else {})
 

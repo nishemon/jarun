@@ -6,6 +6,8 @@ from xml.etree import ElementTree
 from logging import getLogger
 from progressbar import DataTransferBar
 
+import Java
+
 logger = getLogger(__name__)
 
 def getOnlineXML(url):
@@ -67,6 +69,7 @@ def getsysjars(repos, dest):
 	print repos
 	repourls = [x.baseurl for x in repos if x.type == 'maven']
 	downloadPackage(repourls, 'org.apache.ivy', 'ivy', dest)
+	downloadPackage(repourls, 'com.google.code.gson', 'gson', dest)
 	downloadPackage(['http://maven.cccis.jp.s3.amazonaws.com/release'], 'jp.cccis.marun', 'marun', dest)
 
 def find_cmds(paths, name):
@@ -76,4 +79,17 @@ def find_javas():
         javabins = []
         javabins.extend(find_cmds(os.getenv('PATH').split(':'), 'java'))
         return javabins
+
+def mkdirs(dirpath):
+	if not os.path.exists(dirpath):
+		os.makedirs(dirpath)
+
+
+def new_sys_java(conf):
+        rootdir = conf.workdir
+        libdir = os.path.join(rootdir, 'lib')
+        java = Java.Java(conf)
+        java.chdir(rootdir)
+        java.add_classpath(libdir)
+        return java
 

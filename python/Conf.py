@@ -2,11 +2,12 @@
 # coding:UTF-8
 
 import os
-
+import shutil
+import time
 import ConfigParser
 
-MAIN_SECTION='marun'
-
+import Consts
+import util
 
 class RepositoryConf:
 	def __init__(self, parser, repo):
@@ -18,21 +19,36 @@ class RepositoryConf:
 	def toDict(self):
 		return { 'name': self.name, 'baseurl': self.baseurl, 'type': self.type }
 
+class AppConf:
+	def __init__(self, conf):
+		self.install = []
+
+	def add_install(self, artifact):
+		self.install.append(artifact)
+	def toDict(self):
+		return {
+			'install': self.install
+		}
 
 class CoreConf:
 	def __init__(self, conffiles):
 		parser = ConfigParser.ConfigParser()
 		self.jvm = None
 		self.repositories = ''
+		self.jardirname = 'lib'
+		self.hardlink = True
+		self.symboliclink = False
 		for cf in conffiles:
 			if not os.path.exists(cf):
 				pass # todo
 			parser.read(cf)
-			self.__dict__.update(dict(parser.items(MAIN_SECTION)))
+			self.__dict__.update(dict(parser.items(Consts.CONF_MAIN_SECTION)))
 		repos = []
 		for reponame in self.repositories.split(','):
 			repos.append(RepositoryConf(parser, reponame))
 		self.repositories = repos
+	def toappconf(self):
+		return AppConf(self)
 
 	def toDict(self):
 		return {

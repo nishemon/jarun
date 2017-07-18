@@ -13,7 +13,8 @@ dependencies {
 	deployer 'org.springframework.build.aws:org.springframework.build.aws.maven:3.0.0.RELEASE'
 
 	compileOnly 'org.projectlombok:lombok:1.+'
-	compile 'org.apache.ivy:ivy:2.+'
+	compile 'org.apache.ivy:ivy:+'
+	compile 'com.google.code.gson:gson:2.+'
 }
 
 uploadArchives {
@@ -25,8 +26,8 @@ uploadArchives {
 					authentication(userName: getProperty("S3.accessKey"), passphrase: getProperty("S3.secretKey"))
 				}
 			}
-			pom.groupId = 'jp.cccis.jarun'
-			pom.artifactId = 'jarun'
+			pom.groupId = 'jp.cccis.marun'
+			pom.artifactId = 'marun'
 			pom.version = "0.0.1"
 		}
 	}

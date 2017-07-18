@@ -1,10 +1,8 @@
-package jp.cccis.jarun;
+package jp.cccis.marun.lib;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,7 +14,6 @@ import org.apache.ivy.Ivy;
 import org.apache.ivy.core.cache.DefaultRepositoryCacheManager;
 import org.apache.ivy.core.cache.RepositoryCacheManager;
 import org.apache.ivy.core.module.descriptor.Artifact;
-import org.apache.ivy.core.module.descriptor.ModuleDescriptor;
 import org.apache.ivy.core.module.id.ModuleId;
 import org.apache.ivy.core.module.id.ModuleRevisionId;
 import org.apache.ivy.core.report.ArtifactDownloadReport;
@@ -33,6 +30,10 @@ import org.apache.ivy.plugins.resolver.ChainResolver;
 import org.apache.ivy.plugins.resolver.DependencyResolver;
 import org.apache.ivy.plugins.resolver.IBiblioResolver;
 import org.apache.ivy.plugins.resolver.RepositoryResolver;
+import org.apache.ivy.util.Message;
+
+import jp.cccis.marun.lib.MarunOutputReport.JarStatus;
+import jp.cccis.marun.lib.MarunOutputReport.RetrieveStatus;
 
 public class Retriever {
 	private final Ivy ivy;
@@ -43,6 +44,7 @@ public class Retriever {
 		settings.setDefaultResolver(resolver.getName());
 		settings.addRepositoryCacheManager(cacheManager);
 		settings.setDefaultRepositoryCacheManager(cacheManager);
+		Message.setDefaultLogger(new SyserrMessageLogger(Message.MSG_INFO));
 		this.ivy = Ivy.newInstance(settings);
 	}
 
@@ -58,50 +60,67 @@ public class Retriever {
 		return this.ivy.resolve(id, resolveOptions, true);
 	}
 
-	private static Path linkOrCopy(final Path dest, final Path existing) throws IOException {
-		Files.createDirectories(dest.getParent());
-
-		IOException ex;
-		try {
-			Files.createLink(dest, existing);
-			return dest;
-		} catch (IOException e) {
-			ex = e;
-		}
-		try {
-			Files.createSymbolicLink(dest, existing);
-			return dest;
-		} catch (IOException e) {
-			e.addSuppressed(ex);
-			ex = e;
-		}
-		try {
-			Files.copy(existing, dest);
-		} catch (IOException e) {
-			e.addSuppressed(ex);
-			throw e;
-		}
-		return dest;
-	}
-
-	public static List<ArtifactDownloadReport> retrieve(final ResolveReport resolveReport,
-			final ModuleRevisionId originalId) {
-		List<ModuleRevisionId> idList = new ArrayList<>();
-		ModuleDescriptor md = resolveReport.getModuleDescriptor();
+	public static MarunRetrieveReport retrieve(final ResolveReport resolveReport) {
+		List<ModuleRevisionId> unresolved = new ArrayList<>();
 		List<ArtifactDownloadReport> reports = new ArrayList<>();
+		List<ArtifactDownloadReport> fails = new ArrayList<>();
 		for (IvyNode node : (List<IvyNode>) resolveReport.getDependencies()) {
 			List<ArtifactDownloadReport> results = downloadNode(node);
 			if (results.isEmpty()) {
-				idList.add(node.getId());
+				unresolved.add(node.getId());
 			} else {
+				// TODO: compare node.getId() and node.getResolvedId() for update
 				for (ArtifactDownloadReport r : results) {
 					if (r.getDownloadStatus() != DownloadStatus.FAILED) {
 						reports.add(r);
+					} else {
+						fails.add(r);
 					}
 				}
 			}
 		}
-		return reports;
+		MarunRetrieveReport rep = new MarunRetrieveReport(reports);
+		rep.setFailedList(fails);
+		rep.setUnresolvedList(unresolved);
+		return rep;
+	}
+
+	private static String toGradleIdFormatString(final ModuleId id) {
+		return String.format("%s:%s", id.getOrganisation(), id.getName());
+	}
+
+	public MarunOutputReport marun(final ModuleRevisionId rootId, final String scope)
+			throws ParseException, IOException {
+		ResolveReport report = resolve(rootId, scope, false);
+		MarunRetrieveReport rep = Retriever.retrieve(report);
+		MarunOutputReport output = new MarunOutputReport();
+		List<JarStatus> statuses = new ArrayList<>();
+		for (ArtifactDownloadReport r : rep.getDownloadedList()) {
+			JarStatus js = new JarStatus();
+			js.file = r.getLocalFile();
+			ModuleRevisionId revId = r.getArtifact().getModuleRevisionId();
+			js.id = toGradleIdFormatString(revId.getModuleId());
+			js.revision = revId.getRevision();
+			js.source = r.getArtifactOrigin().getLocation();
+			statuses.add(js);
+		}
+		for (ArtifactDownloadReport f : rep.getFailedList()) {
+			JarStatus js = new JarStatus();
+			ModuleRevisionId revId = f.getArtifact().getModuleRevisionId();
+			js.id = toGradleIdFormatString(revId.getModuleId());
+			js.revision = revId.getRevision();
+			js.status = RetrieveStatus.CANT_DOWNLOAD;
+			statuses.add(js);
+		}
+		for (ModuleRevisionId id : rep.getUnresolvedList()) {
+			JarStatus js = new JarStatus();
+			js.id = toGradleIdFormatString(id.getModuleId());
+			js.revision = id.getRevision();
+			js.status = RetrieveStatus.NOT_FOUND;
+			statuses.add(js);
+		}
+		output.dependency = statuses;
+		return output;
 	}
 
 	// private static ArtifactDownloadReport[] downloadRoot(final List<IvyNode> nodes, final
@@ -116,7 +135,7 @@ public class Retriever {
 		if (resolved == null) {
 			return Collections.emptyList();
 		}
-		DependencyResolver resolver = in.getModuleRevision().getResolver();
+		DependencyResolver resolver = resolved.getResolver();
 		Artifact[] master = in.getDescriptor().getArtifacts("master");
 		DownloadReport downloaded = resolver.download(master, new DownloadOptions());
 		return Arrays.asList(downloaded.getArtifactsReports());
@@ -147,7 +166,6 @@ public class Retriever {
 		String art = args[args.length - 1];
 		String[] v = art.split(":", 3);
 		ModuleRevisionId rootId = Retriever.makeRevision(v[0], v[1], v[2]);
-		ResolveReport report = retriever.resolve(rootId, "runtime", false);
-		Retriever.retrieve(report, rootId);
+		retriever.marun(rootId, "runtime");
 	}
 }
