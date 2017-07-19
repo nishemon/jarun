@@ -47,9 +47,14 @@ class CoreConf:
 		for reponame in self.repositories.split(','):
 			repos.append(RepositoryConf(parser, reponame))
 		self.repositories = repos
+		self.parser = parser
 	def toappconf(self):
 		return AppConf(self)
-
+	def get_flavor_conf(self, flavor, default):
+		section = 'flavor:' + flavor
+		if self.parser.has_section(section):
+			return self.parser.items(section)
+		return default
 	def toDict(self):
 		return {
 			'workdir': self.workdir,

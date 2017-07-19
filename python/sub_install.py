@@ -37,7 +37,7 @@ def _setup(conf, app, artifacts):
 	builder = app.new_context_builder(artifacts)
 	current = app.get_current_context()
 	deps = output['dependency']
-	curdeps = current.get_dependency_dict()
+	curdeps = current.get_dependency_dict() if current else {}
 	update = False
         for d in deps:
 		moduleId = d['id']
@@ -45,7 +45,7 @@ def _setup(conf, app, artifacts):
 	if not update:
 		builder.revert()
 		return False
-	outcontrols = current.get_uncontrol_jars()
+	outcontrols = current.get_uncontrol_jars() if current else []
 	if len(outcontrols):
 		logger.warn("There are out of control jars: %s", ",".join(outcontrols))
 		for x in outcontrols:

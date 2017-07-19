@@ -28,6 +28,6 @@ public class Setup {
 		Retriever retriever = Configuration.build(config);
 		String[] cols = args[1].split(":");
 		ModuleRevisionId rootId = Retriever.makeRevision(cols[0], cols[1], cols[2]);
-		gson.toJson(retriever.marun(rootId, args[0]), System.out);
+		gson.toJson(retriever.collect(rootId, args[0]), System.out);
 	}
 }

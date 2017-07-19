@@ -32,7 +32,7 @@ class Java:
 			self.classpath.append(classpath)
 
 	def sysRun(self, args, inconfs):
-		cmds = [self.javabin, '-classpath', ':'.join(self.classpath)]
+		cmds = [self.javabin, '-Djavacpp.platform.linux-x86_64=linux-x86_64' , '-classpath', ':'.join(self.classpath)]
 		if isinstance(args, list):
 			start = len(cmds)
 			cmds.extend(args)

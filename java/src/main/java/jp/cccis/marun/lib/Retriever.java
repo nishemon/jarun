@@ -25,6 +25,7 @@ import org.apache.ivy.core.resolve.IvyNode;
 import org.apache.ivy.core.resolve.ResolveOptions;
 import org.apache.ivy.core.resolve.ResolvedModuleRevision;
 import org.apache.ivy.core.settings.IvySettings;
+import org.apache.ivy.plugins.parser.ModuleDescriptorParserRegistry;
 import org.apache.ivy.plugins.resolver.BintrayResolver;
 import org.apache.ivy.plugins.resolver.ChainResolver;
 import org.apache.ivy.plugins.resolver.DependencyResolver;
@@ -39,6 +40,7 @@ public class Retriever {
 	private final Ivy ivy;
 
 	public Retriever(final RepositoryCacheManager cacheManager, final DependencyResolver resolver) {
+		ModuleDescriptorParserRegistry.getInstance().addParser(PomCustomModuleDescriptorParser.getInstance());
 		IvySettings settings = new IvySettings();
 		settings.addResolver(resolver);
 		settings.setDefaultResolver(resolver.getName());
@@ -65,6 +67,9 @@ public class Retriever {
 		List<ArtifactDownloadReport> reports = new ArrayList<>();
 		List<ArtifactDownloadReport> fails = new ArrayList<>();
 		for (IvyNode node : (List<IvyNode>) resolveReport.getDependencies()) {
+			if (node.isCompletelyEvicted()) {
+				continue;
+			}
 			List<ArtifactDownloadReport> results = downloadNode(node);
 			if (results.isEmpty()) {
 				unresolved.add(node.getId());
@@ -89,7 +94,7 @@ public class Retriever {
 		return String.format("%s:%s", id.getOrganisation(), id.getName());
 	}
 
-	public MarunOutputReport marun(final ModuleRevisionId rootId, final String scope)
+	public MarunOutputReport collect(final ModuleRevisionId rootId, final String scope)
 			throws ParseException, IOException {
 		ResolveReport report = resolve(rootId, scope, false);
 		MarunRetrieveReport rep = Retriever.retrieve(report);
@@ -166,6 +171,6 @@ public class Retriever {
 		String art = args[args.length - 1];
 		String[] v = art.split(":", 3);
 		ModuleRevisionId rootId = Retriever.makeRevision(v[0], v[1], v[2]);
-		retriever.marun(rootId, "runtime");
+		retriever.collect(rootId, "runtime");
 	}
 }
