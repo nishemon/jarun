@@ -34,6 +34,7 @@ def _setup(conf, app, artifacts):
 	(code, output) = sysjava.sysRun(args, conf.toDict())
 	if code != 0:
 		return False
+	print output
 	builder = app.new_context_builder(artifacts)
 	current = app.get_current_context()
 	deps = output['dependency']

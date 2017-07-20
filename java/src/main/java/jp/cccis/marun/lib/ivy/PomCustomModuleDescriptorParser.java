@@ -1,4 +1,4 @@
-package jp.cccis.marun.lib;
+package jp.cccis.marun.lib.ivy;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,7 +39,7 @@ import org.apache.ivy.plugins.resolver.DependencyResolver;
 import org.apache.ivy.util.Message;
 import org.xml.sax.SAXException;
 
-import jp.cccis.marun.lib.PomModuleDescriptorBuilder.PomDependencyDescriptor;
+import jp.cccis.marun.lib.ivy.PomModuleDescriptorBuilder.PomDependencyDescriptor;
 
 /**
  * A parser for Maven 2 POM.
@@ -284,6 +284,7 @@ public final class PomCustomModuleDescriptorParser implements ModuleDescriptorPa
 				}
 
 				mdBuilder.addMainArtifact(artifactId, domReader.getPackaging());
+				mdBuilder.addArtifact(artifactId);
 
 				addSourcesAndJavadocArtifactsIfPresent(mdBuilder, ivySettings);
 			}

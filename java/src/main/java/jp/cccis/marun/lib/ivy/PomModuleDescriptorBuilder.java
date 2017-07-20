@@ -1,4 +1,4 @@
-package jp.cccis.marun.lib;
+package jp.cccis.marun.lib.ivy;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -288,14 +288,23 @@ public class PomModuleDescriptorBuilder {
 			return;
 		}
 
-		DefaultDependencyDescriptor dd = this.ddCache.computeIfAbsent(moduleRevId,
-				ignore -> new PomDependencyDescriptor(dep, this.ivyModuleDescriptor, moduleRevId));
+		DefaultDependencyDescriptor dd = this.ddCache.get(moduleRevId);
+		boolean newDD;
+		if (dd == null) {
+			newDD = true;
+			dd = new PomDependencyDescriptor(dep, this.ivyModuleDescriptor, moduleRevId);
+			this.ddCache.put(moduleRevId, dd);
+		} else {
+			newDD = false;
+		}
 		scope = (scope == null || scope.length() == 0) ? getDefaultScope(dep) : scope;
-		ConfMapper mapping = (ConfMapper) MAVEN2_CONF_MAPPING.get(scope);
-		mapping.addMappingConfs(dd, dep.isOptional());
-		Map extraAtt = new HashMap();
+		if (newDD) {
+			ConfMapper mapping = (ConfMapper) MAVEN2_CONF_MAPPING.get(scope);
+			mapping.addMappingConfs(dd, dep.isOptional());
+		}
 		if ((dep.getClassifier() != null)
 				|| ((dep.getType() != null) && !"jar".equals(dep.getType()))) {
+			Map<String, String> extraAtt = new HashMap<>();
 			String type = "jar";
 			if (dep.getType() != null) {
 				type = dep.getType();
@@ -328,13 +337,12 @@ public class PomModuleDescriptorBuilder {
 		// inherited from parent POMs if either of the following is true:
 		// the <exclusions> element is missing or the <exclusions> element
 		// is present, but empty.
-		List /* <ModuleId> */ excluded = dep.getExcludedModules();
+		List<ModuleId> excluded = dep.getExcludedModules();
 		if (excluded.isEmpty()) {
-			excluded = getDependencyMgtExclusions(this.ivyModuleDescriptor, dep.getGroupId(),
-					dep.getArtifactId());
+			excluded = getDependencyMgtExclusions(this.ivyModuleDescriptor, dep.getGroupId(), dep.getArtifactId());
 		}
-		for (Iterator itExcl = excluded.iterator(); itExcl.hasNext();) {
-			ModuleId excludedModule = (ModuleId) itExcl.next();
+		for (Iterator<ModuleId> itExcl = excluded.iterator(); itExcl.hasNext();) {
+			ModuleId excludedModule = itExcl.next();
 			String[] confs = dd.getModuleConfigurations();
 			for (int k = 0; k < confs.length; k++) {
 				dd.addExcludeRule(confs[k], new DefaultExcludeRule(new ArtifactId(excludedModule,
@@ -342,8 +350,9 @@ public class PomModuleDescriptorBuilder {
 						PatternMatcher.ANY_EXPRESSION), ExactPatternMatcher.INSTANCE, null));
 			}
 		}
-
-		this.ivyModuleDescriptor.addDependency(dd);
+		if (newDD) {
+			this.ivyModuleDescriptor.addDependency(dd);
+		}
 	}
 
 	public void addDependency(final DependencyDescriptor descriptor) {
@@ -466,8 +475,8 @@ public class PomModuleDescriptorBuilder {
 	private String getDefaultVersion(final PomDependencyData dep) {
 		ModuleId moduleId = ModuleId.newInstance(dep.getGroupId(), dep.getArtifactId());
 		if (this.ivyModuleDescriptor.getDependencyManagementMap().containsKey(moduleId)) {
-			return ((PomDependencyMgt) this.ivyModuleDescriptor.getDependencyManagementMap().get(
-					moduleId)).getVersion();
+			return this.ivyModuleDescriptor.getDependencyManagementMap().get(
+					moduleId).getVersion();
 		}
 		String key = getDependencyMgtExtraInfoKeyForVersion(dep.getGroupId(), dep.getArtifactId());
 		return this.ivyModuleDescriptor.getExtraInfoContentByTagName(key);
@@ -477,8 +486,8 @@ public class PomModuleDescriptorBuilder {
 		String result;
 		ModuleId moduleId = ModuleId.newInstance(dep.getGroupId(), dep.getArtifactId());
 		if (this.ivyModuleDescriptor.getDependencyManagementMap().containsKey(moduleId)) {
-			result = ((PomDependencyMgt) this.ivyModuleDescriptor.getDependencyManagementMap().get(
-					moduleId)).getScope();
+			result = this.ivyModuleDescriptor.getDependencyManagementMap().get(
+					moduleId).getScope();
 		} else {
 			String key = getDependencyMgtExtraInfoKeyForScope(dep.getGroupId(), dep.getArtifactId());
 			result = this.ivyModuleDescriptor.getExtraInfoContentByTagName(key);
@@ -512,7 +521,7 @@ public class PomModuleDescriptorBuilder {
 	private static List /* <ModuleId> */ getDependencyMgtExclusions(final ModuleDescriptor descriptor,
 			final String groupId, final String artifactId) {
 		if (descriptor instanceof PomModuleDescriptor) {
-			PomDependencyMgt dependencyMgt = (PomDependencyMgt) ((PomModuleDescriptor) descriptor)
+			PomDependencyMgt dependencyMgt = ((PomModuleDescriptor) descriptor)
 					.getDependencyManagementMap().get(ModuleId.newInstance(groupId, artifactId));
 			if (dependencyMgt != null) {
 				return dependencyMgt.getExcludedModules();
@@ -718,7 +727,7 @@ public class PomModuleDescriptorBuilder {
 	}
 
 	public static class PomModuleDescriptor extends DefaultModuleDescriptor {
-		private final Map/* <ModuleId, PomDependencyMgt> */ dependencyManagementMap = new HashMap();
+		private final Map<ModuleId, PomDependencyMgt> dependencyManagementMap = new HashMap<>();
 
 		public PomModuleDescriptor(final ModuleDescriptorParser parser, final Resource res) {
 			super(parser, res);
@@ -730,8 +739,11 @@ public class PomModuleDescriptorBuilder {
 					dependencyMgt);
 		}
 
-		public Map getDependencyManagementMap() {
+		public Map<ModuleId, PomDependencyMgt> getDependencyManagementMap() {
 			return this.dependencyManagementMap;
 		}
+	}
+
+	public void addArtifact(final String artifactId) {
 	}
 }

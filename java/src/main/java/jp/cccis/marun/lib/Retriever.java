@@ -7,13 +7,19 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.ivy.Ivy;
 import org.apache.ivy.core.cache.DefaultRepositoryCacheManager;
 import org.apache.ivy.core.cache.RepositoryCacheManager;
 import org.apache.ivy.core.module.descriptor.Artifact;
+import org.apache.ivy.core.module.descriptor.DefaultModuleDescriptor;
+import org.apache.ivy.core.module.descriptor.DependencyArtifactDescriptor;
+import org.apache.ivy.core.module.descriptor.DependencyDescriptor;
+import org.apache.ivy.core.module.descriptor.MDArtifact;
 import org.apache.ivy.core.module.id.ModuleId;
 import org.apache.ivy.core.module.id.ModuleRevisionId;
 import org.apache.ivy.core.report.ArtifactDownloadReport;
@@ -35,6 +41,7 @@ import org.apache.ivy.util.Message;
 
 import jp.cccis.marun.lib.MarunOutputReport.JarStatus;
 import jp.cccis.marun.lib.MarunOutputReport.RetrieveStatus;
+import jp.cccis.marun.lib.ivy.PomCustomModuleDescriptorParser;
 
 public class Retriever {
 	private final Ivy ivy;
@@ -66,9 +73,28 @@ public class Retriever {
 		List<ModuleRevisionId> unresolved = new ArrayList<>();
 		List<ArtifactDownloadReport> reports = new ArrayList<>();
 		List<ArtifactDownloadReport> fails = new ArrayList<>();
-		for (IvyNode node : (List<IvyNode>) resolveReport.getDependencies()) {
+		List<IvyNode> nodes = resolveReport.getDependencies();
+		for (IvyNode node : nodes) {
 			if (node.isCompletelyEvicted()) {
 				continue;
+			}
+			Set<String> classifiers = new LinkedHashSet<>();
+			for (IvyNode parent : nodes) {
+				DependencyDescriptor desc = node.getDependencyDescriptor(parent);
+				if (desc == null) {
+					continue;
+				}
+				for (DependencyArtifactDescriptor dart : desc.getAllDependencyArtifacts()) {
+					String classifier = dart.getAttribute("classifier");
+					if (classifier != null) {
+						classifiers.add(classifier);
+					}
+				}
+			}
+			DefaultModuleDescriptor pm = (DefaultModuleDescriptor) node.getDescriptor();
+			for (String cl : classifiers) {
+				pm.addArtifact("master", new MDArtifact(pm, node.getResolvedId().getName(), "jar", "jar", null,
+						Collections.singletonMap("m:classifier", cl)));
 			}
 			List<ArtifactDownloadReport> results = downloadNode(node);
 			if (results.isEmpty()) {

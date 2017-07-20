@@ -24,7 +24,7 @@ version = next(
 		line.split('=', 2)[1].strip(" \t'")
 		  for line in open(os.path.join(here, SRC, '__init__.py'))
 		  if line.startswith('__version__ = ')
-	), '0.0.1'
+	), '0.0.1.dev1'
 )
 
 setup(
@@ -41,13 +41,19 @@ setup(
     install_requires=_requires_from_file('requirements.txt'),
     license="MIT",
     classifiers=[
-        'Programming Language :: Java'
+        'Development Status :: 2 - Pre-Alpha',
+        'Environment :: Console',
+        'Operating System :: POSIX',
+        'Programming Language :: Java',
+        'Programming Language :: Python :: 2.7',
         'License :: OSI Approved :: MIT License',
     ],
-    entry_points="""
-      # -*- Entry points: -*-
-      [console_scripts]
-      marun = python.marun:main
-    """,
+    python_requires = '>=2.7, <3',
+    entry_points={
+        'console_scripts': [
+            'marun=python.marun:main',
+        ],
+    },
+    keywords='java maven ivy repository package artifact run',
 )
 
