@@ -128,7 +128,7 @@ public class Retriever {
 		List<JarStatus> statuses = new ArrayList<>();
 		for (ArtifactDownloadReport r : rep.getDownloadedList()) {
 			JarStatus js = new JarStatus();
-			js.file = r.getLocalFile();
+			js.path = r.getLocalFile().toPath();
 			ModuleRevisionId revId = r.getArtifact().getModuleRevisionId();
 			js.id = toGradleIdFormatString(revId.getModuleId());
 			js.revision = revId.getRevision();
@@ -150,7 +150,7 @@ public class Retriever {
 			js.status = RetrieveStatus.NOT_FOUND;
 			statuses.add(js);
 		}
-		output.dependency = statuses;
+		output.dependencies = statuses;
 		return output;
 	}
 

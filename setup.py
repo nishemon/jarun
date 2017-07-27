@@ -6,7 +6,7 @@ import os
 
 from setuptools import setup, find_packages
 
-SRC = 'python'
+SRC = 'marun'
 
 try:
 	with open('README.md') as f:
@@ -24,7 +24,7 @@ version = next(
 		line.split('=', 2)[1].strip(" \t'")
 		  for line in open(os.path.join(here, SRC, '__init__.py'))
 		  if line.startswith('__version__ = ')
-	), '0.0.1.dev1'
+	), '0.0.1.dev2'
 )
 
 setup(
@@ -35,7 +35,7 @@ setup(
     author_email='shtk@cccis.jp',
     maintainer='S.Takai',
     maintainer_email='shtk@cccis.jp',
-    description='Maven Artifact RUNner. Get jar files from maven repository and run it.',
+    description='get an artifact and dependencies (java jar files) from maven repositories, like pip in python.',
     long_description=readme,
     packages=find_packages(),
     install_requires=_requires_from_file('requirements.txt'),
@@ -51,9 +51,9 @@ setup(
     python_requires = '>=2.7, <3',
     entry_points={
         'console_scripts': [
-            'marun=python.marun:main',
+            'marun=marun.marun:main',
         ],
     },
-    keywords='java maven ivy repository package artifact run',
+    keywords=['java', 'maven', 'ivy', 'repository', 'package', 'artifact', 'run'],
 )
 

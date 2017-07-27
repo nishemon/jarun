@@ -4,14 +4,13 @@ import sys
 
 from xml.etree import ElementTree
 from logging import getLogger
-from progressbar import DataTransferBar
 
 import Java
 
 logger = getLogger(__name__)
 
 def getOnlineXML(url):
-	logger.info('[TRY] %s', url)
+	print("[TRY] %s" % url)
 	urlobj = urllib.urlopen(url)
 	try:
 		urlobj = urllib.urlopen(url)
@@ -21,7 +20,7 @@ def getOnlineXML(url):
 		pass
 	return None
 
-class DownloadBar:
+class DownloadStatus:
 	def __init__(self):
 		self.size = 0
 		self.bar = None
@@ -29,17 +28,14 @@ class DownloadBar:
 	def update(self, size, total):
 		if not self.bar:
 			if total == -1:
-				self.bar = DataTransferBar(max_value=progressbar.UnknownLength)
 				self.total = sys.maxint
 			else:
-				self.bar = DataTransferBar(max_value=total)
 				self.total = total
-			self.bar.start()
 		self.size += size
-		self.bar.update(min(self.size, self.total))
+		sys.stdout.write("%s / %s\r" % (min(self.size, self.total), self.total))
 
 	def finish(self):
-		self.bar.finish()
+		sys.stdout.write("\n")
 
 def downloadPackage(repos, org, name, save, verstr=None):
 	for r in repos:
@@ -48,8 +44,7 @@ def downloadPackage(repos, org, name, save, verstr=None):
 		tree = getOnlineXML(maven)
 		if not tree:
 			continue
-		print maven
-		logger.info('[GOT] %s', maven)
+		print("[GOT] %s" % maven)
 		versioning = tree.find('versioning')
 		if not verstr:
 			verstr = versioning.find('release').text
@@ -57,39 +52,35 @@ def downloadPackage(repos, org, name, save, verstr=None):
 			if v.text == verstr:
 				jarname = '%s-%s.jar' % (name, verstr)
 				jarurl = '/'.join([base, verstr, jarname])
-				logger.info('[FOUND] %s %s in %s', name, verstr, jarurl)
+				print("[FOUND] %s %s in %s" % (name, verstr, jarurl))
 				jarpath = os.path.join(save, jarname)
-				bar = DownloadBar()
-				urllib.urlretrieve(jarurl, jarpath, lambda cnt, size, total:bar.update(size, total))
-				bar.finish()
+				stat = DownloadStatus()
+				urllib.urlretrieve(jarurl, jarpath, lambda cnt, size, total:stat.update(size, total))
+				stat.finish()
 				return jarpath
 	return None
-
-def getsysjars(repos, dest):
-	print repos
-	repourls = [x.baseurl for x in repos if x.type == 'maven']
-	downloadPackage(repourls, 'org.apache.ivy', 'ivy', dest)
-	downloadPackage(repourls, 'com.google.code.gson', 'gson', dest)
-	downloadPackage(['http://maven.cccis.jp.s3.amazonaws.com/release'], 'jp.cccis.marun', 'marun', dest)
 
 def find_cmds(paths, name):
         return [b for b in [os.path.join(p, name) for p in paths] if os.access(b, os.X_OK)]
 
 def find_javas():
-        javabins = []
-        javabins.extend(find_cmds(os.getenv('PATH').split(':'), 'java'))
+	paths = []
+        jh = os.getenv('JAVA_HOME')
+        if jh and os.path.exists(jh):
+		paths.append(jh)
+	paths.extend(os.getenv('PATH').split(':'))
+        javabins = find_cmds(paths, 'java')
         return javabins
 
 def mkdirs(dirpath):
 	if not os.path.exists(dirpath):
 		os.makedirs(dirpath)
 
-
 def new_sys_java(conf):
         rootdir = conf.workdir
         libdir = os.path.join(rootdir, 'lib')
         java = Java.Java(conf)
         java.chdir(rootdir)
-        java.add_classpath(libdir)
+        java.add_syspath(libdir)
         return java
 

@@ -3,16 +3,12 @@
 ## usage
 1. install marun
  > pip install marun
-or
- > git clone 
- > python setup.py
 
-2. download system jar files
- > marun init
+2. install a jar (gradle short format)
+ > marun install org.apache.commons:commons-compress:+
 
-3. install a sample jar
- > mkdir sample; cd sample
- > marun install jp.cccis.marun:sample:+
+3. run
+ > marun run org.apache.commons.compress.archivers.sevenz.CLI
 
 ## configuration
 It is expected that you have some private maven repository.
@@ -29,7 +25,7 @@ Use Amazon S3, Nexus, Artifactory or a http server.
 * Python 2.7
 
 ## limitation
-Now on development.
+This is WIP.
 
 ## internal
 Marun is based on Apache Ivy.

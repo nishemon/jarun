@@ -1,6 +1,6 @@
 package jp.cccis.marun.lib;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.util.List;
 
 import lombok.Getter;
@@ -11,13 +11,14 @@ public class MarunOutputReport {
 		NOT_FOUND, CANT_DOWNLOAD
 	}
 
+	@Getter
 	public static class JarStatus {
-		File file;
+		Path path;
 		String source;
 		String id;
 		String revision;
 		RetrieveStatus status;
 	}
 
-	List<JarStatus> dependency;
+	List<JarStatus> dependencies;
 }

@@ -9,10 +9,8 @@ import Consts
 
 
 parser = argparse.ArgumentParser(prog='marun')
-#parser.add_argument('-u', '--update', help='update befor run.')
-#parser.add_argument('-f', '--flavors', help='append flavors', action='append')
-#parser.add_argument('-v', '--verbose', help='vebose', action='count')
-#parser.add_argument('-J', '--javaarg', help='Java parameter. add raw options to java cmd.')
+parser.add_argument('-r', '--root', help='directory')
+parser.add_argument('-v', '--verbose', help='vebose', action='count')
 subparsers = parser.add_subparsers()
 
 import sub_init
