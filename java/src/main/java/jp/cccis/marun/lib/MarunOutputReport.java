@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 import lombok.Getter;
+import lombok.ToString;
 
 @Getter
 public class MarunOutputReport {
@@ -11,6 +12,7 @@ public class MarunOutputReport {
 		NOT_FOUND, CANT_DOWNLOAD
 	}
 
+	@ToString
 	@Getter
 	public static class JarStatus {
 		Path path;

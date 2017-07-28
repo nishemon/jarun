@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import os
 
 import Consts
@@ -12,9 +14,9 @@ def init(conf, args):
     rootdir = conf.workdir
     libdir = os.path.join(rootdir, 'lib')
     util.mkdirs(libdir)
-    util.downloadPackage(Consts.INIT_REPOSITORY_URLS, 'org.apache.ivy', 'ivy', libdir)
-    util.downloadPackage(Consts.INIT_REPOSITORY_URLS, 'com.google.code.gson', 'gson', libdir)
-    util.downloadPackage(Consts.INIT_REPOSITORY_URLS, 'jp.cccis.marun', 'marun', libdir)
+    util.download_package(Consts.INIT_REPOSITORY_URLS, 'org.apache.ivy', 'ivy', libdir)
+    util.download_package(Consts.INIT_REPOSITORY_URLS, 'com.google.code.gson', 'gson', libdir)
+    util.download_package(Consts.INIT_REPOSITORY_URLS, 'jp.cccis.marun', 'marun', libdir)
     sysjava = util.new_sys_java(conf)
     code, output = sysjava.sysRun(['Health'], conf.toDict())
     if code != 0:

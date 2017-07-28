@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# coding:UTF-8
+# -*- coding: utf-8 -*-
 
 import os
 import shutil
@@ -35,7 +34,7 @@ class AppRepository(object):
     def new_context_builder(self, installs):
         return _AppContextBuilder(self, installs)
 
-    def _update(self, newid, context, jardir, keepold=False):
+    def update(self, newid, context, jardir, keepold=False):
         self.status[ATTR_CONTEXT].append(newid)
         self.status[str(newid)] = context
         if self.last and jardir:
@@ -119,7 +118,7 @@ class _AppContextBuilder(object):
             os.mkdir(check)
             self.tempdir = check
         except:
-            self.tempdir = tempfile.mkdtemp(prefix=conf.jardirname + "-", dir=".")
+            self.tempdir = tempfile.mkdtemp(prefix=self.conf.jardirname + "-", dir=".")
 
     def _add(self, jarpath, hard=None):
         name = os.path.basename(jarpath)
@@ -136,13 +135,13 @@ class _AppContextBuilder(object):
             shutil.copyfile(jarpath, target)
         return name
 
-    def add(self, modId, jarpath, attr, hard=None):
+    def add(self, modid, jarpath, attr, hard=None):
         name = self._add(jarpath, hard)
         attr[ATTR_DEP_NAME] = name
-        self.dependency[modId] = attr
+        self.dependency[modid] = attr
 
     def commit(self, mains, resources, keepold=False):
-        self.repository._update(self.id, {
+        self.repository.update(self.id, {
             ATTR_INSTALL: self.installs,
             ATTR_DEPENDENCIES: self.dependency,
             ATTR_MAINS: mains,

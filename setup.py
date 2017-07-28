@@ -54,6 +54,6 @@ setup(
             'marun=marun.marun:main',
         ],
     },
-    keywords=['java', 'maven', 'ivy', 'repository', 'package', 'artifact', 'run'],
+    keywords=['java', 'maven', 'deploy', 'ivy', 'repository', 'package', 'artifact', 'run'],
 )
 

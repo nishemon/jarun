@@ -31,7 +31,12 @@ public class Setup {
 	private Setup(final List<JarStatus> jars) throws ClassNotFoundException, IOException {
 		List<Path> paths = new ArrayList<>();
 		for (JarStatus js : jars) {
-			paths.add(js.getPath());
+			Path p = js.getPath();
+			if (p != null) {
+				paths.add(p);
+			} else {
+				System.err.println(js);
+			}
 		}
 		this.extractor = new MarunExtractor(paths);
 	}

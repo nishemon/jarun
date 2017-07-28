@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import os
 import sys
 import urllib
@@ -9,9 +11,8 @@ import Java
 logger = getLogger(__name__)
 
 
-def getOnlineXML(url):
+def read_online_xml(url):
     print("[TRY] %s" % url)
-    urlobj = urllib.urlopen(url)
     try:
         urlobj = urllib.urlopen(url)
         if urlobj.getcode() == 200:
@@ -22,15 +23,17 @@ def getOnlineXML(url):
 
 
 class DownloadStatus(object):
+    """
+    Show download status to console.
+    """
     def __init__(self):
         self.size = 0
         self.bar = None
+        self.total = sys.maxint
 
     def update(self, size, total):
         if not self.bar:
-            if total == -1:
-                self.total = sys.maxint
-            else:
+            if total != -1:
                 self.total = total
         self.size += size
         sys.stdout.write("%s / %s\r" % (min(self.size, self.total), self.total))
@@ -39,11 +42,11 @@ class DownloadStatus(object):
         sys.stdout.write("\n")
 
 
-def downloadPackage(repos, org, name, save, verstr=None):
+def download_package(repos, org, name, save, verstr=None):
     for r in repos:
         base = '/'.join([r.rstrip('/'), org.replace('.', '/'), name])
         maven = base + '/maven-metadata.xml'
-        tree = getOnlineXML(maven)
+        tree = read_online_xml(maven)
         if not tree:
             continue
         print("[GOT] %s" % maven)
