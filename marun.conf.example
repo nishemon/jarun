@@ -1,0 +1,52 @@
+[marun]
+## Java executable
+## If not setting, jboot will search "java" in PATH.
+#jvm=/usr/bin/java
+
+## maven repositories in order
+repositories=private,bintray,central
+
+## 
+workdir=/var/lib/marun
+
+## Ivy cache directory root.
+## (hint) If the project dir and cachedir are in the same volume, the jars can be hardlinks.
+cachedir=/var/cache/marun/ivy
+
+## compatible with ivy
+#cachedir=~/.ivy
+
+#flavors=oom,thp
+
+##
+#jardirname=lib
+
+##
+#hardlink=yes
+## symbolic link is not recomended. It is easy to delete cache dir to break all projects.
+#symboliclink=no
+
+## "bintray" and "central" are embedded repositories. But you can overwrite them if enable the below.
+#[repository:bintray]
+#Bintray jcenter
+#baseurl=https://jcenter.bintray.com/
+#
+#[repository:central]
+#Maven Central Repository
+#baseurl=http://repo1.maven.org/maven2/
+
+[repository:private]
+#My S3 Private repository
+baseurl=http://maven.cccis.jp.s3.amazonaws.com/
+
+### You can define flavors for run command.
+### > marun run --flavors thp,fixmem=1G com.example.YourApp
+## use transparent huge pages (with AlwaysPreTouch for increase huge pages)
+[flavor:thp]
+XX=+UseTransparentHugePages +AlwaysPreTouch
+
+## fix memory size
+[flavor:fixmem]
+## The value '[]' is a placeholder of the flavor argument.
+options=-Xmx[] -Xms[]
+
