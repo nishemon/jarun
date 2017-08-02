@@ -49,7 +49,7 @@ class AppRepository(object):
                     shutil.rmtree(curdir)
                 self.status.pop(self.last)
                 self.status[ATTR_CONTEXT].remove(int(self.last))
-            # TODO: remove oldest / remove if lib is deleted
+                # TODO: remove oldest / remove if lib is deleted
         os.rename(jardir, self.conf.jardirname)
         tmpfile = Consts.APP_STATUS_FILE + "." + str(newid)
         with codecs.open(tmpfile, 'w', Consts.UTF8) as f:

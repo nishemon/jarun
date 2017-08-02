@@ -70,6 +70,7 @@ class Java(object):
     """
     Control Java
     """
+
     def __init__(self, conf):
         self.javabin = conf.jvm or util.find_javas()[0]
         self.is32 = True

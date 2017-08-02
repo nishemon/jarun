@@ -117,7 +117,7 @@ def run(conf, args):
 
 
 def setup_subcmd(subparsers):
-    run_parser = subparsers.add_parser('run')
+    run_parser = subparsers.add_parser('run', help="Run an installed artifact")
     run_parser.add_argument('--flavors', help="add(+) or replace(@) flavors. ex) --flavors +fl1,fl2")
     run_parser.add_argument('-J', nargs='+', help="JVM argument.", dest='jvmargs')
     run_parser.add_argument('-D', nargs='+', help="JVM system property (pass-through JVM argument).", dest='declare')

@@ -108,13 +108,13 @@ def update(conf, args):
 
 
 def setup_subcmd(subparsers):
-    install_parser = subparsers.add_parser('install', help='Download jars.')
+    install_parser = subparsers.add_parser('install', help='Install artifacts')
     install_parser.add_argument('artifacts', nargs='+')
     install_parser.add_argument('-a', '--add', help='additional install', action='store_true')
     install_parser.add_argument('-d', '--libdir')
     install_parser.set_defaults(handler=install)
 
-    update_parser = subparsers.add_parser('update', help='Not yet implemented.')
+    update_parser = subparsers.add_parser('update', help='Update artifacts')
     update_parser.add_argument('-k', '--keepold', action='store_true', help='keep old install')
     # update_parser.add_argument('--minor', help='update minor version if pom.xml accept (default patch)')
     # update_parser.add_argument('--ignore-pom')
