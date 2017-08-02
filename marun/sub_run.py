@@ -3,10 +3,14 @@
 import argparse
 import imp
 import os
+import sys
+
+from logging import getLogger
 
 import Java
 import App
 
+logger = getLogger(__name__)
 FLAVOR = os.path.abspath(__file__)
 
 
@@ -41,7 +45,7 @@ def _apply_flavor(f, conf, jvmflags):
         if base == f:
             fmod = _load_flavor(f, [FLAVOR, conf.flavordir])
             if native and not fmod:
-                print("Invalid flavor:" + f)
+                logger.error("flavor not found: '%s' in [%s]", f, ",".join([FLAVOR, conf.flavordir]))
                 return []
             break
     fc = {}
@@ -77,7 +81,7 @@ def _find_main_class(directive, mainclasses):
         for d in range(len(dpath) - 1):
             cur = dpath[d]
             while p + 1 < len(path) and cur != path[p] and cur != path[p][0]:
-                print '%s = %s' % (path[p], d)
+                logger.debug("match: %s = %s" % (path[p], d))
                 p = (p + 1)
             if p + 1 == len(path):
                 hit = False
@@ -88,7 +92,7 @@ def _find_main_class(directive, mainclasses):
         return directive
     if 1 == len(candidates):
         return candidates[0]
-    print ("ERROR: class parameter '%s' is ambiguous. [%s]" % (directive, ', '.join(candidates)))
+    logger.critical("class parameter '%s' is ambiguous. [%s]", directive, ', '.join(candidates))
     return None
 
 
@@ -107,15 +111,17 @@ def run(conf, args):
     app = App.AppRepository(conf)
     context = app.get_current_context()
     main = _find_main_class(args.mainclass, context.get_mains())
-    java.runClass([context.get_jardir() + '/*'], jvmflags, args.J, main, args.classargs)
+    classpaths = [context.get_jardir() + '/*', context.get_resourcedir()]
+    java.runClass(classpaths, jvmflags, args.jvmargs, main, args.classargs)
     return (True, None)
 
 
 def setup_subcmd(subparsers):
     run_parser = subparsers.add_parser('run')
     run_parser.add_argument('--flavors', help="add(+) or replace(@) flavors. ex) --flavors +fl1,fl2")
-    run_parser.add_argument('-J', help="Java argument.")
-    run_parser.add_argument('-n', help="dryrun: print java command")
+    run_parser.add_argument('-J', nargs='+', help="JVM argument.", dest='jvmargs')
+    run_parser.add_argument('-D', nargs='+', help="JVM system property (pass-through JVM argument).", dest='declare')
+    run_parser.add_argument('-n', action='store_true', help="dryrun: print java command")
     run_parser.add_argument('mainclass')
     run_parser.add_argument('classargs', nargs=argparse.REMAINDER)
     run_parser.set_defaults(handler=run)

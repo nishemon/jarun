@@ -11,7 +11,7 @@ import java.util.jar.JarFile;
 
 import lombok.Value;
 
-public class ResourceFinder {
+public final class ResourceFinder {
 	@Value
 	public static class Entry {
 		private Path filepath;

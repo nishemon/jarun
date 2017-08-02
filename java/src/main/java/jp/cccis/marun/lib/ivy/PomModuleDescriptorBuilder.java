@@ -43,6 +43,8 @@ import org.apache.ivy.plugins.repository.Resource;
 import org.apache.ivy.plugins.resolver.DependencyResolver;
 import org.apache.ivy.util.Message;
 
+import lombok.Value;
+
 /**
  * Build a module descriptor. This class handle the complexity of the structure of an ivy
  * ModuleDescriptor and isolate the PomModuleDescriptorParser from it.
@@ -267,7 +269,7 @@ public class PomModuleDescriptorBuilder {
 		this.ivyModuleDescriptor.addArtifact("master", this.mainArtifact);
 	}
 
-	private final Map<ModuleRevisionId, DefaultDependencyDescriptor> ddCache = new HashMap<>();
+	private final Map<ScopedModule, DefaultDependencyDescriptor> ddCache = new HashMap<>();
 
 	public void addDependency(final Resource res, final PomDependencyData dep) {
 		String scope = dep.getScope();
@@ -288,20 +290,10 @@ public class PomModuleDescriptorBuilder {
 			return;
 		}
 
-		DefaultDependencyDescriptor dd = this.ddCache.get(moduleRevId);
-		boolean newDD;
-		if (dd == null) {
-			newDD = true;
-			dd = new PomDependencyDescriptor(dep, this.ivyModuleDescriptor, moduleRevId);
-			this.ddCache.put(moduleRevId, dd);
-		} else {
-			newDD = false;
-		}
 		scope = (scope == null || scope.length() == 0) ? getDefaultScope(dep) : scope;
-		if (newDD) {
-			ConfMapper mapping = (ConfMapper) MAVEN2_CONF_MAPPING.get(scope);
-			mapping.addMappingConfs(dd, dep.isOptional());
-		}
+
+		String optionalizedScope = dep.isOptional() ? "optional" : scope;
+		DefaultDependencyDescriptor dd = getArtifactDependencyDescriptor(dep, optionalizedScope, scope, moduleRevId);
 		if ((dep.getClassifier() != null)
 				|| ((dep.getType() != null) && !"jar".equals(dep.getType()))) {
 			Map<String, String> extraAtt = new HashMap<>();
@@ -329,7 +321,6 @@ public class PomModuleDescriptorBuilder {
 					dd, dd.getDependencyId().getName(), type, ext, null, extraAtt);
 			// here we have to assume a type and ext for the artifact, so this is a limitation
 			// compared to how m2 behave with classifiers
-			String optionalizedScope = dep.isOptional() ? "optional" : scope;
 			dd.addDependencyArtifact(optionalizedScope, depArtifact);
 		}
 
@@ -350,9 +341,33 @@ public class PomModuleDescriptorBuilder {
 						PatternMatcher.ANY_EXPRESSION), ExactPatternMatcher.INSTANCE, null));
 			}
 		}
+	}
+
+	@Value
+	private static class ScopedModule {
+		private ModuleRevisionId moduleRevId;
+		private String optionalizedScope;
+	}
+
+	private DefaultDependencyDescriptor getArtifactDependencyDescriptor(final PomDependencyData dep,
+			final String optionalizedScope, final String scope,
+			final ModuleRevisionId moduleRevId) {
+		ScopedModule key = new ScopedModule(moduleRevId, optionalizedScope);
+		DefaultDependencyDescriptor dd = this.ddCache.get(key);
+		boolean newDD;
+		if (dd == null) {
+			newDD = true;
+			dd = new PomDependencyDescriptor(dep, this.ivyModuleDescriptor, moduleRevId);
+			this.ddCache.put(key, dd);
+		} else {
+			newDD = false;
+		}
 		if (newDD) {
+			ConfMapper mapping = (ConfMapper) MAVEN2_CONF_MAPPING.get(scope);
+			mapping.addMappingConfs(dd, dep.isOptional());
 			this.ivyModuleDescriptor.addDependency(dd);
 		}
+		return dd;
 	}
 
 	public void addDependency(final DependencyDescriptor descriptor) {

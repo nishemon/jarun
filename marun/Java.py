@@ -3,10 +3,12 @@
 import subprocess
 import json
 import sys
+import logging
 
 import util
 import Consts
 
+logger = logging.getLogger(__name__)
 _XKEY_VALUE_FLAGS = ['Xmx', 'Xms', 'Xss']
 
 """
@@ -20,13 +22,13 @@ def _merge_options(jvmflags, strargs):
     if strargs:
         xxs = []
         options = []
-        for x in strargs.split():
-            if not x:
+        for arg in [x for strarg in strargs for x in strarg.split()]:
+            if not arg:
                 continue
-            if x.startswith('-XX:'):
-                xxs.append(x[4:])
+            if arg.startswith('-XX:'):
+                xxs.append(arg[4:])
                 continue
-            options.append(x)
+            options.append(arg)
         baseflags.append({'xx': ' '.join(xxs), 'options': ' '.join(options)})
     options = {}
     xsizes = {}
@@ -57,10 +59,10 @@ def _merge_options(jvmflags, strargs):
                     break
             if not is_xsize:
                 options[o[1:]] = True
-    applys = [('-' + o) if v is True else '-%s=%s' % (o, v) for o, v in options.iteritems()]
-    applys.extend(['-%s%s' % (k, v) for k, v in xsizes.iteritems()])
-    applys.extend(['-XX:%s=%s' % (xx, v) for xx, v in xxoptions.iteritems()])
-    applys.extend(['-XX:%s%s' % ('+' if f else '-', xx) for xx, f in xxflags.iteritems()])
+    applys = [('-' + o) if v is True else '-%s=%s' % (o, v) for o, v in options.items()]
+    applys.extend(['-%s%s' % (k, v) for k, v in xsizes.items()])
+    applys.extend(['-XX:%s=%s' % (xx, v) for xx, v in xxoptions.items()])
+    applys.extend(['-XX:%s%s' % ('+' if f else '-', xx) for xx, f in xxflags.items()])
     return applys
 
 
@@ -74,12 +76,12 @@ class Java(object):
         self.rundir = '.'
         self.syspath = []
 
-    def runClass(self, classpaths, flavorargs, javaargstr, clazz, cmds):
+    def runClass(self, classpaths, flavorargs, javaargstrs, clazz, cmds):
         args = [self.javabin, '-classpath', ':'.join(classpaths)]
-        args.extend(_merge_options(flavorargs, javaargstr))
+        args.extend(_merge_options(flavorargs, javaargstrs))
         args.append(clazz)
         args.extend(cmds)
-        print args
+        logger.debug("> %s", " ".join(args))
         subprocess.call(args)
 
     def chdir(self, d):
@@ -99,6 +101,12 @@ class Java(object):
             cmds[start] = Consts.JAVA_CLI_PACKAGE + '.' + cmds[start]
         else:
             cmds.append(Consts.JAVA_CLI_PACKAGE + '.' + args)
+        logger.debug("# %s", " ".join(cmds))
+        tojava = json.dumps(inconfs)
+        logger.debug("%s", tojava)
         proc = subprocess.Popen(cmds, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=sys.stdout)
         stdout, _ = proc.communicate(json.dumps(inconfs))
-        return (proc.poll(), json.loads(stdout) if stdout else {})
+        retcode = proc.poll()
+        fromjava = json.loads(stdout) if stdout else {}
+        logger.debug("%s", fromjava)
+        return (retcode, fromjava)

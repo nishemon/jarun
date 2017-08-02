@@ -10,7 +10,7 @@ DEFAULT_CONF_FILE='/etc/marun.conf'
 CONF_MAIN_SECTION='marun'
 
 # App
-APP_STATUS_FILE='.marun.json'
+APP_STATUS_FILE='marun.json'
 
 # Java
 JAVA_CLI_PACKAGE='jp.cccis.marun.lib.cli'

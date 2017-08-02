@@ -42,7 +42,7 @@ public class Setup {
 	}
 
 	private List<String> findMain() {
-		List<Method> methods = this.extractor.findMethod("main", String[].class);
+		List<Method> methods = this.extractor.findStaticMethod("main", String[].class);
 		return methods.stream().map(m -> m.getDeclaringClass().getName()).collect(Collectors.toList());
 	}
 
@@ -55,9 +55,16 @@ public class Setup {
 		Gson gson = builder.create();
 		Configuration config = gson.fromJson(reader, Configuration.class);
 		Retriever retriever = Configuration.build(config);
-		String[] cols = args[1].split(":");
-		ModuleRevisionId rootId = Retriever.makeRevision(cols[0], cols[1], cols[2]);
-		MarunOutputReport reports = retriever.collect(rootId, args[0]);
+		List<ModuleRevisionId> requires = new ArrayList<>();
+		for (int i = 0; i < args.length; i++) {
+			String[] cols = args[1].split(":", 4);
+			if (3 < cols.length) {
+				requires.add(Retriever.makeRevision(cols[0], cols[1], cols[2], cols[3]));
+			} else {
+				requires.add(Retriever.makeRevision(cols[0], cols[1], cols[2]));
+			}
+		}
+		MarunOutputReport reports = retriever.collect(requires, args[0]);
 		Setup self = new Setup(reports.getDependencies());
 		Map<String, Object> values = new LinkedHashMap<>();
 		values.put("resolve", reports);

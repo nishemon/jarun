@@ -12,7 +12,7 @@ logger = getLogger(__name__)
 
 
 def read_online_xml(url):
-    print("[TRY] %s" % url)
+    logger.info("[TRY] %s", url)
     try:
         urlobj = urllib.urlopen(url)
         if urlobj.getcode() == 200:
@@ -36,7 +36,7 @@ class DownloadStatus(object):
             if total != -1:
                 self.total = total
         self.size += size
-        sys.stdout.write("%s / %s\r" % (min(self.size, self.total), self.total))
+        sys.stdout.write("Download: %s / %s\r" % (min(self.size, self.total), self.total))
 
     def finish(self):
         sys.stdout.write("\n")
@@ -49,7 +49,7 @@ def download_package(repos, org, name, save, verstr=None):
         tree = read_online_xml(maven)
         if not tree:
             continue
-        print("[GOT] %s" % maven)
+        logger.info("[GOT] %s", maven)
         versioning = tree.find('versioning')
         if not verstr:
             verstr = versioning.find('release').text
@@ -57,7 +57,7 @@ def download_package(repos, org, name, save, verstr=None):
             if v.text == verstr:
                 jarname = '%s-%s.jar' % (name, verstr)
                 jarurl = '/'.join([base, verstr, jarname])
-                print("[FOUND] %s %s in %s" % (name, verstr, jarurl))
+                logger.info("[FOUND] %s %s in %s", name, verstr, jarurl)
                 jarpath = os.path.join(save, jarname)
                 stat = DownloadStatus()
                 urllib.urlretrieve(jarurl, jarpath, lambda cnt, size, total: stat.update(size, total))

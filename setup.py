@@ -24,7 +24,7 @@ version = next(
 		line.split('=', 2)[1].strip(" \t'")
 		  for line in open(os.path.join(here, SRC, '__init__.py'))
 		  if line.startswith('__version__ = ')
-	), '0.0.1.dev2'
+	), '0.0.1.dev4'
 )
 
 setup(
@@ -54,6 +54,8 @@ setup(
             'marun=marun.marun:main',
         ],
     },
+    include_package_data=True,
+    data_files=[('/etc', ['marun.conf.example'])],
     keywords=['java', 'maven', 'deploy', 'ivy', 'repository', 'package', 'artifact', 'run'],
 )
 

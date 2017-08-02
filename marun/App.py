@@ -64,17 +64,21 @@ class AppRepository(object):
 
 class _AppContext(object):
     def __init__(self, repository, values):
+        # type: (AppRepository, dict) -> None
         self.repository = repository
         self.jars = values.get(ATTR_DEPENDENCIES, {})
         self.jardir = repository.conf.jardirname
+        self.resourcedir = 'resources'
         self.installs = values[ATTR_INSTALL]
         self.mains = values.get(ATTR_MAINS, {})
+        self.luck_jars = None
+        self.uncontrols = []
 
     def _check_jars(self):
+        if self.luck_jars is not None:
+            return
         need_jarnames = dict([(self.jars[x][ATTR_DEP_NAME], x) for x in self.jars])
-        if not os.path.isdir(self.jardir):
-            self.uncontrols = []
-        else:
+        if os.path.isdir(self.jardir):
             self.uncontrols = [x for x in os.listdir(self.jardir) if
                                x.endswith(".jar") and not need_jarnames.pop(x, False)]
         self.luck_jars = need_jarnames
@@ -105,6 +109,9 @@ class _AppContext(object):
     def get_jardir(self):
         return self.jardir
 
+    def get_resourcedir(self):
+        return self.resourcedir
+
 
 class _AppContextBuilder(object):
     def __init__(self, repository, installs):
@@ -112,22 +119,22 @@ class _AppContextBuilder(object):
         self.conf = repository.conf
         self.installs = installs
         self.id = int(time.time())
-        self.dependency = {}
+        self.dependencies = {}
         check = "%s.%d" % (self.conf.jardirname, self.id)
         try:
             os.mkdir(check)
             self.tempdir = check
-        except:
+        except OSError:
             self.tempdir = tempfile.mkdtemp(prefix=self.conf.jardirname + "-", dir=".")
 
     def _add(self, jarpath, hard=None):
         name = os.path.basename(jarpath)
         target = os.path.join(self.tempdir, name)
-        if hard or (hard == None and self.conf.hardlink):
+        if hard or (hard is None and self.conf.hardlink):
             try:
                 os.link(jarpath, target)
                 return name
-            except:
+            except OSError:
                 pass
         if self.conf.symboliclink:
             os.symlink(jarpath, target)
@@ -138,15 +145,14 @@ class _AppContextBuilder(object):
     def add(self, modid, jarpath, attr, hard=None):
         name = self._add(jarpath, hard)
         attr[ATTR_DEP_NAME] = name
-        self.dependency[modid] = attr
+        self.dependencies[modid] = attr
 
     def commit(self, mains, resources, keepold=False):
         self.repository.update(self.id, {
             ATTR_INSTALL: self.installs,
-            ATTR_DEPENDENCIES: self.dependency,
+            ATTR_DEPENDENCIES: self.dependencies,
             ATTR_MAINS: mains,
         }, self.tempdir, keepold=keepold)
-        print resources
         return True
 
     def revert(self):

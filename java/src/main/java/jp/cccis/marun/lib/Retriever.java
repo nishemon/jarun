@@ -16,6 +16,8 @@ import org.apache.ivy.Ivy;
 import org.apache.ivy.core.cache.DefaultRepositoryCacheManager;
 import org.apache.ivy.core.cache.RepositoryCacheManager;
 import org.apache.ivy.core.module.descriptor.Artifact;
+import org.apache.ivy.core.module.descriptor.Configuration;
+import org.apache.ivy.core.module.descriptor.DefaultDependencyDescriptor;
 import org.apache.ivy.core.module.descriptor.DefaultModuleDescriptor;
 import org.apache.ivy.core.module.descriptor.DependencyArtifactDescriptor;
 import org.apache.ivy.core.module.descriptor.DependencyDescriptor;
@@ -62,11 +64,39 @@ public class Retriever {
 		return new ModuleRevisionId(modId, revision);
 	}
 
-	public ResolveReport resolve(final ModuleRevisionId id, final String scope, final boolean resolveOnly)
+	public static ModuleRevisionId makeRevision(final String organisation, final String name, final String revision,
+			final String classifier) {
+		return ModuleRevisionId.newInstance(organisation, name, revision,
+				Collections.singletonMap("classifier", classifier));
+	}
+
+	public static ModuleRevisionId makeRevision(final String organisation, final String name, final String revision,
+			final String branch, final String classifier) {
+		// XXX: this is not working about classifier
+		return ModuleRevisionId.newInstance(organisation, name, branch, revision,
+				Collections.singletonMap("classifier", classifier));
+	}
+
+	public ResolveReport resolve(final List<ModuleRevisionId> ids, final String scope, final boolean resolveOnly)
 			throws ParseException, IOException {
 		ResolveOptions resolveOptions = new ResolveOptions().setConfs(new String[] { scope });
 		resolveOptions.setDownload(!resolveOnly);
-		return this.ivy.resolve(id, resolveOptions, true);
+		// TODO changing flag should be set by user
+		// ModuleDescriptor md = DefaultModuleDescriptor.newCallerInstance(ids.toArray(new
+		// ModuleRevisionId[ids.size()]),
+		// true, true);
+		DefaultModuleDescriptor moduleDescriptor = new DefaultModuleDescriptor(
+				ModuleRevisionId.newInstance("caller", "all-caller", "working"), "integration", null, true);
+		moduleDescriptor.addConfiguration(new Configuration(scope));
+		moduleDescriptor.setLastModified(System.currentTimeMillis());
+		for (ModuleRevisionId id : ids) {
+			DefaultDependencyDescriptor dd = new DefaultDependencyDescriptor(moduleDescriptor,
+					id, true, true, true);
+			dd.addDependencyConfiguration(scope, "*");
+			moduleDescriptor.addDependency(dd);
+		}
+
+		return this.ivy.resolve(moduleDescriptor, resolveOptions);
 	}
 
 	public static MarunRetrieveReport retrieve(final ResolveReport resolveReport) {
@@ -120,9 +150,9 @@ public class Retriever {
 		return String.format("%s:%s", id.getOrganisation(), id.getName());
 	}
 
-	public MarunOutputReport collect(final ModuleRevisionId rootId, final String scope)
+	public MarunOutputReport collect(final List<ModuleRevisionId> rootIds, final String scope)
 			throws ParseException, IOException {
-		ResolveReport report = resolve(rootId, scope, false);
+		ResolveReport report = resolve(rootIds, scope, false);
 		MarunRetrieveReport rep = Retriever.retrieve(report);
 		MarunOutputReport output = new MarunOutputReport();
 		List<JarStatus> statuses = new ArrayList<>();
@@ -133,6 +163,7 @@ public class Retriever {
 			js.id = toGradleIdFormatString(revId.getModuleId());
 			js.revision = revId.getRevision();
 			js.source = r.getArtifactOrigin().getLocation();
+			js.classifier = r.getArtifact().getExtraAttribute("classifier");
 			statuses.add(js);
 		}
 		for (ArtifactDownloadReport f : rep.getFailedList()) {
@@ -141,6 +172,7 @@ public class Retriever {
 			js.id = toGradleIdFormatString(revId.getModuleId());
 			js.revision = revId.getRevision();
 			js.status = RetrieveStatus.CANT_DOWNLOAD;
+			js.classifier = f.getArtifact().getExtraAttribute("classifier");
 			statuses.add(js);
 		}
 		for (ModuleRevisionId id : rep.getUnresolvedList()) {
@@ -195,8 +227,13 @@ public class Retriever {
 
 		Retriever retriever = new Retriever(cm, resolver);
 		String art = args[args.length - 1];
-		String[] v = art.split(":", 3);
-		ModuleRevisionId rootId = Retriever.makeRevision(v[0], v[1], v[2]);
-		retriever.collect(rootId, "runtime");
+		String[] v = art.split(":", 4);
+		ModuleRevisionId rootId;
+		if (3 < v.length) {
+			rootId = Retriever.makeRevision(v[0], v[1], v[2], v[3]);
+		} else {
+			rootId = Retriever.makeRevision(v[0], v[1], v[2]);
+		}
+		retriever.collect(Collections.singletonList(rootId), "runtime");
 	}
 }

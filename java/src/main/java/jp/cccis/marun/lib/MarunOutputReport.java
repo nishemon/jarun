@@ -19,6 +19,7 @@ public class MarunOutputReport {
 		String source;
 		String id;
 		String revision;
+		String classifier;
 		RetrieveStatus status;
 	}
 

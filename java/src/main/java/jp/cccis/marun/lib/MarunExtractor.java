@@ -60,8 +60,9 @@ public class MarunExtractor {
 			final List<Entry> noclasses, final Map<String, List<String>> failures) throws ClassNotFoundException {
 		List<Class<?>> classes = new ArrayList<>();
 		for (Entry ent : allResources) {
-			if (ent.getResourceName().endsWith(".class")) {
-				String cname = ent.getResourceName().substring(0, ent.getResourceName().length() - ".class".length());
+			String res = ent.getResourceName();
+			if (res.endsWith(".class")) {
+				String cname = res.substring(0, res.length() - ".class".length());
 				String fullcname = ent.getPackageName() + "." + cname;
 				try {
 					classes.add(loader.loadClass(fullcname));
@@ -75,11 +76,11 @@ public class MarunExtractor {
 		return classes;
 	}
 
-	public List<Method> findMethod(final String name, final Class<?>... classes) {
+	public List<Method> findStaticMethod(final String name, final Class<?>... classes) {
 		List<Method> methods = new ArrayList<>();
 		for (Class<?> clazz : this.loadedClasses) {
 			try {
-				methods.add(clazz.getMethod(name, classes));
+				methods.add(clazz.getDeclaredMethod(name, classes));
 			} catch (NoSuchMethodException e) {
 				continue;
 			} catch (SecurityException e) {

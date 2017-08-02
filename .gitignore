@@ -23,4 +23,8 @@ bin/
 # python
 *.egg-info
 *.pyc
+dist
+# marun
+lib*
+marun.json
 
