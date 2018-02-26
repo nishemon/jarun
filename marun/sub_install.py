@@ -88,23 +88,23 @@ def install(conf, args):
     app = App.AppRepository(conf)
     installed = app.get_current_context()
     if not args.add and installed:
-        return (False, 'already installed directory. Use "-a" for add jar file if you want.')
+        return False, 'already installed directory. Use "-a" for add jar file if you want.'
     artifacts = installed and installed.get_installs() or []
     # TODO check conflict
     artifacts.extend(args.artifacts)
     if _setup(conf, app, artifacts):
-        return (True, None)
-    return (False, None)
+        return True, None
+    return False, None
 
 
 def update(conf, args):
     app = App.AppRepository(conf)
     installed = app.get_current_context()
     if not installed:
-        return (False, 'not found "%s": no marun installed status.' % Consts.APP_STATUS_FILE)
+        return False, 'not found "%s": no marun installed status.' % Consts.APP_STATUS_FILE
     if _setup(conf, app, installed.get_installs(), args.keepold):
-        return (True, None)
-    return (False, None)
+        return True, None
+    return False, None
 
 
 def setup_subcmd(subparsers):

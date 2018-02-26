@@ -11,7 +11,7 @@ import util
 def init(conf, args):
     javas = util.find_javas()
     if len(javas) == 0:
-        return (False, "Command \"java\" is not found. Set JAVA_HOME/PATH/MARUN_JAVA or config file.")
+        return False, "Command \"java\" is not found. Set JAVA_HOME/PATH/MARUN_JAVA or config file."
     rootdir = conf.workdir
     if args.clear:
         shutil.rmtree(rootdir, True)
@@ -23,8 +23,8 @@ def init(conf, args):
     sysjava = util.new_sys_java(conf)
     code, output = sysjava.sysRun(['Health'], conf.toDict())
     if code != 0:
-        return (False, "Fail to execute marun java library.\n" + output)
-    return (True, None)
+        return False, "Fail to execute marun java library.\n" + output
+    return True, None
 
 
 def setup_subcmd(subparsers):
