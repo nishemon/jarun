@@ -9,22 +9,24 @@ from setuptools import setup, find_packages
 SRC = 'marun'
 
 try:
-	with open('README.md') as f:
-		readme = f.read()
+    with open('README.md') as f:
+        readme = f.read()
 except IOError:
-	readme = ''
+    readme = ''
+
 
 def _requires_from_file(filename):
-	return open(filename).read().splitlines()
+    return open(filename).read().splitlines()
+
 
 # version
 here = os.path.dirname(os.path.abspath(__file__))
 version = next(
-	(
-		line.split('=', 2)[1].strip(" \t'")
-		  for line in open(os.path.join(here, SRC, '__init__.py'))
-		  if line.startswith('__version__ = ')
-	), '0.0.2'
+    (
+        line.split('=', 2)[1].strip(" \t'")
+        for line in open(os.path.join(here, SRC, '__init__.py'))
+        if line.startswith('__version__ = ')
+    ), '0.0.2'
 )
 
 setup(
@@ -48,7 +50,7 @@ setup(
         'Programming Language :: Python :: 2.7',
         'License :: OSI Approved :: MIT License',
     ],
-    python_requires = '>=2.7, <3',
+    python_requires='>=2.7, <3',
     entry_points={
         'console_scripts': [
             'marun=marun.marun:main',
@@ -57,4 +59,3 @@ setup(
     include_package_data=True,
     keywords=['java', 'maven', 'deploy', 'ivy', 'repository', 'package', 'artifact', 'run'],
 )
-
