@@ -45,18 +45,21 @@ class CoreConf(object):
         self.symboliclink = False
         self.flavors = ''
         self.flavordir = 'flavors'
+        self.valid = False
+        self.workdir = Consts.DEFAULT_WORKDIR
         for cf in conffiles:
             if not os.path.exists(cf):
-                pass  # todo
+                continue
             parser.read(cf)
             self.__dict__.update(dict(parser.items(Consts.CONF_MAIN_SECTION)))
+            self.valid = True
         repos = []
         for reponame in self.repositories.split(','):
             if parser.has_section('repository:' + reponame):
                 repos.append(RepositoryConf(parser, reponame))
             elif Consts.SPECIAL_REPOSITORIES.get(reponame, False):
                 repos.append(RepositoryConf(None, reponame))
-        self.repositories = repos
+        self.repository_list = repos
         self.parser = parser
 
     def toappconf(self):
@@ -71,5 +74,8 @@ class CoreConf(object):
     def toDict(self):
         return {
             'workdir': self.workdir,
-            'repositories': [x.toDict() for x in self.repositories]
+            'repositories': [x.toDict() for x in self.repository_list]
         }
+
+    def isValid(self):
+        return self.valid

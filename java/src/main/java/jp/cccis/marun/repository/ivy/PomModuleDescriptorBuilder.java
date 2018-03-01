@@ -1,4 +1,4 @@
-package jp.cccis.marun.lib.ivy;
+package jp.cccis.marun.repository.ivy;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -6,12 +6,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.ivy.Ivy;
 import org.apache.ivy.core.cache.ArtifactOrigin;
@@ -101,7 +100,7 @@ public class PomModuleDescriptorBuilder {
 			new Configuration("optional", Visibility.PUBLIC, "contains all optional dependencies",
 					new String[0], true, null) };
 
-	static final Map MAVEN2_CONF_MAPPING = new HashMap();
+	static final Map<String, ConfMapper> MAVEN2_CONF_MAPPING = new HashMap<>();
 
 	private static final String DEPENDENCY_MANAGEMENT = "m:dependency.management";
 
@@ -109,7 +108,7 @@ public class PomModuleDescriptorBuilder {
 
 	private static final String EXTRA_INFO_DELIMITER = "__";
 
-	private static final Collection/* <String> */ JAR_PACKAGINGS = Arrays.asList(new String[] {
+	private static final Collection<String> JAR_PACKAGINGS = Arrays.asList(new String[] {
 			"ejb", "bundle", "maven-plugin", "eclipse-plugin", "jbi-component",
 			"jbi-shared-library", "orbit", "hk2-jar" });
 
@@ -118,68 +117,50 @@ public class PomModuleDescriptorBuilder {
 	}
 
 	static {
-		MAVEN2_CONF_MAPPING.put("compile", new ConfMapper() {
-			@Override
-			public void addMappingConfs(final DefaultDependencyDescriptor dd, final boolean isOptional) {
-				if (isOptional) {
-					dd.addDependencyConfiguration("optional", "compile(*)");
-					// dd.addDependencyConfiguration("optional", "provided(*)");
-					dd.addDependencyConfiguration("optional", "master(*)");
+		MAVEN2_CONF_MAPPING.put("compile", (dd, isOptional) -> {
+			if (isOptional) {
+				dd.addDependencyConfiguration("optional", "compile(*)");
+				// dd.addDependencyConfiguration("optional", "provided(*)");
+				dd.addDependencyConfiguration("optional", "master(*)");
 
-				} else {
-					dd.addDependencyConfiguration("compile", "compile(*)");
-					// dd.addDependencyConfiguration("compile", "provided(*)");
-					dd.addDependencyConfiguration("compile", "master(*)");
-					dd.addDependencyConfiguration("runtime", "runtime(*)");
-				}
+			} else {
+				dd.addDependencyConfiguration("compile", "compile(*)");
+				// dd.addDependencyConfiguration("compile", "provided(*)");
+				dd.addDependencyConfiguration("compile", "master(*)");
+				dd.addDependencyConfiguration("runtime", "runtime(*)");
 			}
 		});
-		MAVEN2_CONF_MAPPING.put("provided", new ConfMapper() {
-			@Override
-			public void addMappingConfs(final DefaultDependencyDescriptor dd, final boolean isOptional) {
-				if (isOptional) {
-					dd.addDependencyConfiguration("optional", "compile(*)");
-					dd.addDependencyConfiguration("optional", "provided(*)");
-					dd.addDependencyConfiguration("optional", "runtime(*)");
-					dd.addDependencyConfiguration("optional", "master(*)");
-				} else {
-					dd.addDependencyConfiguration("provided", "compile(*)");
-					dd.addDependencyConfiguration("provided", "provided(*)");
-					dd.addDependencyConfiguration("provided", "runtime(*)");
-					dd.addDependencyConfiguration("provided", "master(*)");
-				}
+		MAVEN2_CONF_MAPPING.put("provided", (dd, isOptional) -> {
+			if (isOptional) {
+				dd.addDependencyConfiguration("optional", "compile(*)");
+				dd.addDependencyConfiguration("optional", "provided(*)");
+				dd.addDependencyConfiguration("optional", "runtime(*)");
+				dd.addDependencyConfiguration("optional", "master(*)");
+			} else {
+				dd.addDependencyConfiguration("provided", "compile(*)");
+				dd.addDependencyConfiguration("provided", "provided(*)");
+				dd.addDependencyConfiguration("provided", "runtime(*)");
+				dd.addDependencyConfiguration("provided", "master(*)");
 			}
 		});
-		MAVEN2_CONF_MAPPING.put("runtime", new ConfMapper() {
-			@Override
-			public void addMappingConfs(final DefaultDependencyDescriptor dd, final boolean isOptional) {
-				if (isOptional) {
-					dd.addDependencyConfiguration("optional", "compile(*)");
-					dd.addDependencyConfiguration("optional", "provided(*)");
-					dd.addDependencyConfiguration("optional", "master(*)");
+		MAVEN2_CONF_MAPPING.put("runtime", (dd, isOptional) -> {
+			if (isOptional) {
+				dd.addDependencyConfiguration("optional", "compile(*)");
+				dd.addDependencyConfiguration("optional", "provided(*)");
+				dd.addDependencyConfiguration("optional", "master(*)");
 
-				} else {
-					dd.addDependencyConfiguration("runtime", "compile(*)");
-					dd.addDependencyConfiguration("runtime", "runtime(*)");
-					dd.addDependencyConfiguration("runtime", "master(*)");
-				}
+			} else {
+				dd.addDependencyConfiguration("runtime", "compile(*)");
+				dd.addDependencyConfiguration("runtime", "runtime(*)");
+				dd.addDependencyConfiguration("runtime", "master(*)");
 			}
 		});
-		MAVEN2_CONF_MAPPING.put("test", new ConfMapper() {
-			@Override
-			public void addMappingConfs(final DefaultDependencyDescriptor dd, final boolean isOptional) {
-				// optional doesn't make sense in the test scope
-				dd.addDependencyConfiguration("test", "runtime(*)");
-				dd.addDependencyConfiguration("test", "master(*)");
-			}
+		MAVEN2_CONF_MAPPING.put("test", (dd, isOptional) -> {
+			// optional doesn't make sense in the test scope
+			dd.addDependencyConfiguration("test", "runtime(*)");
+			dd.addDependencyConfiguration("test", "master(*)");
 		});
-		MAVEN2_CONF_MAPPING.put("system", new ConfMapper() {
-			@Override
-			public void addMappingConfs(final DefaultDependencyDescriptor dd, final boolean isOptional) {
-				// optional doesn't make sense in the system scope
-				dd.addDependencyConfiguration("system", "master(*)");
-			}
-		});
+		MAVEN2_CONF_MAPPING.put("system", (dd, isOptional) -> dd.addDependencyConfiguration("system", "master(*)"));
 	}
 
 	private final PomModuleDescriptor ivyModuleDescriptor;
@@ -197,8 +178,8 @@ public class PomModuleDescriptorBuilder {
 			final ParserSettings ivySettings) {
 		this.ivyModuleDescriptor = new PomModuleDescriptor(parser, res);
 		this.ivyModuleDescriptor.setResolvedPublicationDate(new Date(res.getLastModified()));
-		for (int i = 0; i < MAVEN2_CONFIGURATIONS.length; i++) {
-			this.ivyModuleDescriptor.addConfiguration(MAVEN2_CONFIGURATIONS[i]);
+		for (final Configuration element : MAVEN2_CONFIGURATIONS) {
+			this.ivyModuleDescriptor.addConfiguration(element);
 		}
 		this.ivyModuleDescriptor.setMappingOverride(true);
 		this.ivyModuleDescriptor.addExtraAttributeNamespace("m", Ivy.getIvyHomeURL() + "maven");
@@ -229,8 +210,8 @@ public class PomModuleDescriptorBuilder {
 	}
 
 	public void setLicenses(final License[] licenses) {
-		for (int i = 0; i < licenses.length; i++) {
-			this.ivyModuleDescriptor.addLicense(licenses[i]);
+		for (final License license : licenses) {
+			this.ivyModuleDescriptor.addLicense(license);
 		}
 	}
 
@@ -243,12 +224,12 @@ public class PomModuleDescriptorBuilder {
 		 */
 		if ("pom".equals(packaging)) {
 			// no artifact defined! Add the default artifact if it exist.
-			DependencyResolver resolver = this.parserSettings.getResolver(this.mrid);
+			final DependencyResolver resolver = this.parserSettings.getResolver(this.mrid);
 
 			if (resolver != null) {
-				DefaultArtifact artifact = new DefaultArtifact(this.mrid, new Date(), artifactId, "jar",
+				final DefaultArtifact artifact = new DefaultArtifact(this.mrid, new Date(), artifactId, "jar",
 						"jar");
-				ArtifactOrigin artifactOrigin = resolver.locate(artifact);
+				final ArtifactOrigin artifactOrigin = resolver.locate(artifact);
 
 				if (!ArtifactOrigin.isUnknown(artifactOrigin)) {
 					this.mainArtifact = artifact;
@@ -280,23 +261,24 @@ public class PomModuleDescriptorBuilder {
 
 		String version = dep.getVersion();
 		version = (version == null || version.length() == 0) ? getDefaultVersion(dep) : version;
-		ModuleRevisionId moduleRevId = ModuleRevisionId.newInstance(dep.getGroupId(),
+		final ModuleRevisionId moduleRevId = ModuleRevisionId.newInstance(dep.getGroupId(),
 				dep.getArtifactId(), version);
 
 		// Some POMs depend on theirselfves, don't add this dependency: Ivy doesn't allow this!
 		// Example: https://repo1.maven.org/maven2/net/jini/jsk-platform/2.1/jsk-platform-2.1.pom
-		ModuleRevisionId mRevId = this.ivyModuleDescriptor.getModuleRevisionId();
+		final ModuleRevisionId mRevId = this.ivyModuleDescriptor.getModuleRevisionId();
 		if ((mRevId != null) && mRevId.getModuleId().equals(moduleRevId.getModuleId())) {
 			return;
 		}
 
 		scope = (scope == null || scope.length() == 0) ? getDefaultScope(dep) : scope;
 
-		String optionalizedScope = dep.isOptional() ? "optional" : scope;
-		DefaultDependencyDescriptor dd = getArtifactDependencyDescriptor(dep, optionalizedScope, scope, moduleRevId);
+		final String optionalizedScope = dep.isOptional() ? "optional" : scope;
+		final DefaultDependencyDescriptor dd = getArtifactDependencyDescriptor(dep, optionalizedScope, scope,
+				moduleRevId);
 		if ((dep.getClassifier() != null)
 				|| ((dep.getType() != null) && !"jar".equals(dep.getType()))) {
-			Map<String, String> extraAtt = new HashMap<>();
+			final Map<String, String> extraAtt = new HashMap<>();
 			String type = "jar";
 			if (dep.getType() != null) {
 				type = dep.getType();
@@ -317,7 +299,7 @@ public class PomModuleDescriptorBuilder {
 			if (dep.getClassifier() != null) {
 				extraAtt.put("m:classifier", dep.getClassifier());
 			}
-			DefaultDependencyArtifactDescriptor depArtifact = new DefaultDependencyArtifactDescriptor(
+			final DefaultDependencyArtifactDescriptor depArtifact = new DefaultDependencyArtifactDescriptor(
 					dd, dd.getDependencyId().getName(), type, ext, null, extraAtt);
 			// here we have to assume a type and ext for the artifact, so this is a limitation
 			// compared to how m2 behave with classifiers
@@ -332,11 +314,10 @@ public class PomModuleDescriptorBuilder {
 		if (excluded.isEmpty()) {
 			excluded = getDependencyMgtExclusions(this.ivyModuleDescriptor, dep.getGroupId(), dep.getArtifactId());
 		}
-		for (Iterator<ModuleId> itExcl = excluded.iterator(); itExcl.hasNext();) {
-			ModuleId excludedModule = itExcl.next();
-			String[] confs = dd.getModuleConfigurations();
-			for (int k = 0; k < confs.length; k++) {
-				dd.addExcludeRule(confs[k], new DefaultExcludeRule(new ArtifactId(excludedModule,
+		for (final ModuleId excludedModule : excluded) {
+			final String[] confs = dd.getModuleConfigurations();
+			for (final String conf : confs) {
+				dd.addExcludeRule(conf, new DefaultExcludeRule(new ArtifactId(excludedModule,
 						PatternMatcher.ANY_EXPRESSION, PatternMatcher.ANY_EXPRESSION,
 						PatternMatcher.ANY_EXPRESSION), ExactPatternMatcher.INSTANCE, null));
 			}
@@ -352,18 +333,13 @@ public class PomModuleDescriptorBuilder {
 	private DefaultDependencyDescriptor getArtifactDependencyDescriptor(final PomDependencyData dep,
 			final String optionalizedScope, final String scope,
 			final ModuleRevisionId moduleRevId) {
-		ScopedModule key = new ScopedModule(moduleRevId, optionalizedScope);
+		final ScopedModule key = new ScopedModule(moduleRevId, optionalizedScope);
 		DefaultDependencyDescriptor dd = this.ddCache.get(key);
-		boolean newDD;
 		if (dd == null) {
-			newDD = true;
 			dd = new PomDependencyDescriptor(dep, this.ivyModuleDescriptor, moduleRevId);
 			this.ddCache.put(key, dd);
-		} else {
-			newDD = false;
-		}
-		if (newDD) {
-			ConfMapper mapping = (ConfMapper) MAVEN2_CONF_MAPPING.get(scope);
+
+			final ConfMapper mapping = MAVEN2_CONF_MAPPING.get(scope);
 			mapping.addMappingConfs(dd, dep.isOptional());
 			this.ivyModuleDescriptor.addDependency(dd);
 		}
@@ -375,8 +351,8 @@ public class PomModuleDescriptorBuilder {
 		// since Ivy doesn't allow this!
 		// Example:
 		// https://repo1.maven.org/maven2/com/atomikos/atomikos-util/3.6.4/atomikos-util-3.6.4.pom
-		ModuleId dependencyId = descriptor.getDependencyId();
-		ModuleRevisionId mRevId = this.ivyModuleDescriptor.getModuleRevisionId();
+		final ModuleId dependencyId = descriptor.getDependencyId();
+		final ModuleRevisionId mRevId = this.ivyModuleDescriptor.getModuleRevisionId();
 		if ((mRevId != null) && mRevId.getModuleId().equals(dependencyId)) {
 			return;
 		}
@@ -387,24 +363,23 @@ public class PomModuleDescriptorBuilder {
 	public void addDependencyMgt(final PomDependencyMgt dep) {
 		this.ivyModuleDescriptor.addDependencyManagement(dep);
 
-		String key = getDependencyMgtExtraInfoKeyForVersion(dep.getGroupId(), dep.getArtifactId());
+		final String key = getDependencyMgtExtraInfoKeyForVersion(dep.getGroupId(), dep.getArtifactId());
 		overwriteExtraInfoIfExists(key, dep.getVersion());
 		if (dep.getScope() != null) {
-			String scopeKey = getDependencyMgtExtraInfoKeyForScope(dep.getGroupId(),
+			final String scopeKey = getDependencyMgtExtraInfoKeyForScope(dep.getGroupId(),
 					dep.getArtifactId());
 			overwriteExtraInfoIfExists(scopeKey, dep.getScope());
 		}
 		if (!dep.getExcludedModules().isEmpty()) {
 			final String exclusionPrefix = getDependencyMgtExtraInfoPrefixForExclusion(
 					dep.getGroupId(), dep.getArtifactId());
-			int index = 0;
-			for (final Iterator iter = dep.getExcludedModules().iterator(); iter.hasNext();) {
-				final ModuleId excludedModule = (ModuleId) iter.next();
+			for (ListIterator<ModuleId> iter = ((List<ModuleId>) dep.getExcludedModules()).listIterator(); iter
+					.hasNext();) {
+				final ModuleId excludedModule = iter.next();
 				overwriteExtraInfoIfExists(
-						exclusionPrefix + index,
+						exclusionPrefix + iter.previousIndex(),
 						excludedModule.getOrganisation() + EXTRA_INFO_DELIMITER
 								+ excludedModule.getName());
-				index += 1;
 			}
 		}
 		// dependency management info is also used for version mediation of transitive dependencies
@@ -415,7 +390,7 @@ public class PomModuleDescriptorBuilder {
 	}
 
 	public void addPlugin(final PomDependencyMgt plugin) {
-		String pluginValue = plugin.getGroupId() + EXTRA_INFO_DELIMITER + plugin.getArtifactId()
+		final String pluginValue = plugin.getGroupId() + EXTRA_INFO_DELIMITER + plugin.getArtifactId()
 				+ EXTRA_INFO_DELIMITER + plugin.getVersion();
 		ExtraInfoHolder extraInfoByTagName = this.ivyModuleDescriptor
 				.getExtraInfoByTagName("m:maven.plugins");
@@ -433,15 +408,15 @@ public class PomModuleDescriptorBuilder {
 		extraInfoByTagName.setContent(pluginExtraInfo);
 	}
 
-	public static List /* <PomDependencyMgt> */ getPlugins(final ModuleDescriptor md) {
-		List result = new ArrayList();
-		String plugins = md.getExtraInfoContentByTagName("m:maven.plugins");
+	public static List<PomDependencyMgt> getPlugins(final ModuleDescriptor md) {
+		final String plugins = md.getExtraInfoContentByTagName("m:maven.plugins");
 		if (plugins == null) {
-			return new ArrayList();
+			return Collections.emptyList();
 		}
-		String[] pluginsArray = plugins.split("\\|");
-		for (int i = 0; i < pluginsArray.length; i++) {
-			String[] parts = pluginsArray[i].split(EXTRA_INFO_DELIMITER);
+		final List<PomDependencyMgt> result = new ArrayList<>();
+		final String[] pluginsArray = plugins.split("\\|");
+		for (final String element : pluginsArray) {
+			final String[] parts = element.split(EXTRA_INFO_DELIMITER);
 			result.add(new PomPluginElement(parts[0], parts[1], parts[2]));
 		}
 
@@ -488,23 +463,23 @@ public class PomModuleDescriptorBuilder {
 	}
 
 	private String getDefaultVersion(final PomDependencyData dep) {
-		ModuleId moduleId = ModuleId.newInstance(dep.getGroupId(), dep.getArtifactId());
+		final ModuleId moduleId = ModuleId.newInstance(dep.getGroupId(), dep.getArtifactId());
 		if (this.ivyModuleDescriptor.getDependencyManagementMap().containsKey(moduleId)) {
 			return this.ivyModuleDescriptor.getDependencyManagementMap().get(
 					moduleId).getVersion();
 		}
-		String key = getDependencyMgtExtraInfoKeyForVersion(dep.getGroupId(), dep.getArtifactId());
+		final String key = getDependencyMgtExtraInfoKeyForVersion(dep.getGroupId(), dep.getArtifactId());
 		return this.ivyModuleDescriptor.getExtraInfoContentByTagName(key);
 	}
 
 	private String getDefaultScope(final PomDependencyData dep) {
 		String result;
-		ModuleId moduleId = ModuleId.newInstance(dep.getGroupId(), dep.getArtifactId());
+		final ModuleId moduleId = ModuleId.newInstance(dep.getGroupId(), dep.getArtifactId());
 		if (this.ivyModuleDescriptor.getDependencyManagementMap().containsKey(moduleId)) {
 			result = this.ivyModuleDescriptor.getDependencyManagementMap().get(
 					moduleId).getScope();
 		} else {
-			String key = getDependencyMgtExtraInfoKeyForScope(dep.getGroupId(), dep.getArtifactId());
+			final String key = getDependencyMgtExtraInfoKeyForScope(dep.getGroupId(), dep.getArtifactId());
 			result = this.ivyModuleDescriptor.getExtraInfoContentByTagName(key);
 		}
 		if ((result == null) || !MAVEN2_CONF_MAPPING.containsKey(result)) {
@@ -533,89 +508,89 @@ public class PomModuleDescriptorBuilder {
 				+ artifaceId + EXTRA_INFO_DELIMITER + "exclusion_";
 	}
 
-	private static List /* <ModuleId> */ getDependencyMgtExclusions(final ModuleDescriptor descriptor,
+	private static List<ModuleId> getDependencyMgtExclusions(final ModuleDescriptor descriptor,
 			final String groupId, final String artifactId) {
 		if (descriptor instanceof PomModuleDescriptor) {
-			PomDependencyMgt dependencyMgt = ((PomModuleDescriptor) descriptor)
+			final PomDependencyMgt dependencyMgt = ((PomModuleDescriptor) descriptor)
 					.getDependencyManagementMap().get(ModuleId.newInstance(groupId, artifactId));
 			if (dependencyMgt != null) {
 				return dependencyMgt.getExcludedModules();
 			}
 		}
-		String exclusionPrefix = getDependencyMgtExtraInfoPrefixForExclusion(groupId, artifactId);
-		List /* <ModuleId> */ exclusionIds = new LinkedList /* <ModuleId> */();
-		for (ExtraInfoHolder extraInfoHolder : descriptor.getExtraInfos()) {
-			String key = extraInfoHolder.getName();
-			if (key.startsWith(exclusionPrefix)) {
-				String fullExclusion = extraInfoHolder.getContent();
-				String[] exclusionParts = fullExclusion.split(EXTRA_INFO_DELIMITER);
-				if (exclusionParts.length != 2) {
-					Message.error(WRONG_NUMBER_OF_PARTS_MSG + exclusionParts.length + " : "
-							+ fullExclusion);
-					continue;
-				}
-				exclusionIds.add(ModuleId.newInstance(exclusionParts[0], exclusionParts[1]));
+		final String exclusionPrefix = getDependencyMgtExtraInfoPrefixForExclusion(groupId, artifactId);
+		final List<ModuleId> exclusionIds = new LinkedList<>();
+		for (final ExtraInfoHolder extraInfoHolder : descriptor.getExtraInfos()) {
+			final String key = extraInfoHolder.getName();
+			if (!key.startsWith(exclusionPrefix)) {
+				continue;
 			}
+			final String fullExclusion = extraInfoHolder.getContent();
+			final String[] exclusionParts = fullExclusion.split(EXTRA_INFO_DELIMITER);
+			if (exclusionParts.length != 2) {
+				Message.error(WRONG_NUMBER_OF_PARTS_MSG + exclusionParts.length + " : "
+						+ fullExclusion);
+				continue;
+			}
+			exclusionIds.add(ModuleId.newInstance(exclusionParts[0], exclusionParts[1]));
 		}
 		return exclusionIds;
 	}
 
-	public static Map/* <ModuleId, String version> */
-			getDependencyManagementMap(final ModuleDescriptor md) {
-		Map ret = new LinkedHashMap();
+	public static Map<ModuleId, String> getDependencyManagementMap(final ModuleDescriptor md) {
+		final Map<ModuleId, String> ret = new LinkedHashMap<>();
 		if (md instanceof PomModuleDescriptor) {
-			for (final Iterator iterator = ((PomModuleDescriptor) md).getDependencyManagementMap()
-					.entrySet().iterator(); iterator.hasNext();) {
-				Map.Entry e = (Entry) iterator.next();
-				PomDependencyMgt dependencyMgt = (PomDependencyMgt) e.getValue();
+			for (final Map.Entry<ModuleId, PomDependencyMgt> e : ((PomModuleDescriptor) md).getDependencyManagementMap()
+					.entrySet()) {
+				final PomDependencyMgt dependencyMgt = e.getValue();
 				ret.put(e.getKey(), dependencyMgt.getVersion());
 			}
 		} else {
-			for (ExtraInfoHolder extraInfoHolder : md.getExtraInfos()) {
-				String key = extraInfoHolder.getName();
-				if ((key).startsWith(DEPENDENCY_MANAGEMENT)) {
-					String[] parts = key.split(EXTRA_INFO_DELIMITER);
-					if (parts.length != DEPENDENCY_MANAGEMENT_KEY_PARTS_COUNT) {
-						Message.warn("what seem to be a dependency management extra info "
-								+ "doesn't match expected pattern: " + key);
-					} else {
-						ret.put(ModuleId.newInstance(parts[1], parts[2]),
-								extraInfoHolder.getContent());
-					}
+			for (final ExtraInfoHolder extraInfoHolder : md.getExtraInfos()) {
+				final String key = extraInfoHolder.getName();
+				if (!key.startsWith(DEPENDENCY_MANAGEMENT)) {
+					continue;
+				}
+				final String[] parts = key.split(EXTRA_INFO_DELIMITER);
+				if (parts.length != DEPENDENCY_MANAGEMENT_KEY_PARTS_COUNT) {
+					Message.warn("what seem to be a dependency management extra info "
+							+ "doesn't match expected pattern: " + key);
+				} else {
+					ret.put(ModuleId.newInstance(parts[1], parts[2]),
+							extraInfoHolder.getContent());
 				}
 			}
 		}
 		return ret;
 	}
 
-	public static List getDependencyManagements(final ModuleDescriptor md) {
-		List result = new ArrayList();
+	public static List<PomDependencyMgt> getDependencyManagements(final ModuleDescriptor md) {
+		final List<PomDependencyMgt> result = new ArrayList<>();
 
 		if (md instanceof PomModuleDescriptor) {
 			result.addAll(((PomModuleDescriptor) md).getDependencyManagementMap().values());
 		} else {
-			for (ExtraInfoHolder extraInfoHolder : md.getExtraInfos()) {
-				String key = extraInfoHolder.getName();
-				if ((key).startsWith(DEPENDENCY_MANAGEMENT)) {
-					String[] parts = key.split(EXTRA_INFO_DELIMITER);
-					if (parts.length != DEPENDENCY_MANAGEMENT_KEY_PARTS_COUNT) {
-						Message.warn("what seem to be a dependency management extra info "
-								+ "doesn't match expected pattern: " + key);
-					} else {
-						String versionKey = DEPENDENCY_MANAGEMENT + EXTRA_INFO_DELIMITER + parts[1]
-								+ EXTRA_INFO_DELIMITER + parts[2] + EXTRA_INFO_DELIMITER
-								+ "version";
-						String scopeKey = DEPENDENCY_MANAGEMENT + EXTRA_INFO_DELIMITER + parts[1]
-								+ EXTRA_INFO_DELIMITER + parts[2] + EXTRA_INFO_DELIMITER + "scope";
+			for (final ExtraInfoHolder extraInfoHolder : md.getExtraInfos()) {
+				final String key = extraInfoHolder.getName();
+				if (!key.startsWith(DEPENDENCY_MANAGEMENT)) {
+					continue;
+				}
+				final String[] parts = key.split(EXTRA_INFO_DELIMITER);
+				if (parts.length != DEPENDENCY_MANAGEMENT_KEY_PARTS_COUNT) {
+					Message.warn("what seem to be a dependency management extra info "
+							+ "doesn't match expected pattern: " + key);
+				} else {
+					final String versionKey = DEPENDENCY_MANAGEMENT + EXTRA_INFO_DELIMITER + parts[1]
+							+ EXTRA_INFO_DELIMITER + parts[2] + EXTRA_INFO_DELIMITER
+							+ "version";
+					final String scopeKey = DEPENDENCY_MANAGEMENT + EXTRA_INFO_DELIMITER + parts[1]
+							+ EXTRA_INFO_DELIMITER + parts[2] + EXTRA_INFO_DELIMITER + "scope";
 
-						String version = md.getExtraInfoContentByTagName(versionKey);
-						String scope = md.getExtraInfoContentByTagName(scopeKey);
+					final String version = md.getExtraInfoContentByTagName(versionKey);
+					final String scope = md.getExtraInfoContentByTagName(scopeKey);
 
-						List /* <ModuleId> */ exclusions = getDependencyMgtExclusions(md, parts[1],
-								parts[2]);
-						result.add(new DefaultPomDependencyMgt(parts[1], parts[2], version, scope,
-								exclusions));
-					}
+					final List<ModuleId> exclusions = getDependencyMgtExclusions(md, parts[1], parts[2]);
+					result.add(new DefaultPomDependencyMgt(parts[1], parts[2], version, scope,
+							exclusions));
 				}
 			}
 		}
@@ -623,11 +598,10 @@ public class PomModuleDescriptorBuilder {
 	}
 
 	@Deprecated
-	public void addExtraInfos(final Map extraAttributes) {
-		for (Iterator it = extraAttributes.entrySet().iterator(); it.hasNext();) {
-			Map.Entry entry = (Entry) it.next();
-			String key = (String) entry.getKey();
-			String value = (String) entry.getValue();
+	public void addExtraInfos(final Map<String, String> extraAttributes) {
+		for (final Map.Entry<String, String> entry : extraAttributes.entrySet()) {
+			final String key = entry.getKey();
+			final String value = entry.getValue();
 			addExtraInfo(key, value);
 		}
 	}
@@ -640,7 +614,7 @@ public class PomModuleDescriptorBuilder {
 
 	private void overwriteExtraInfoIfExists(final String key, final String value) {
 		boolean found = false;
-		for (ExtraInfoHolder extraInfoHolder : this.ivyModuleDescriptor.getExtraInfos()) {
+		for (final ExtraInfoHolder extraInfoHolder : this.ivyModuleDescriptor.getExtraInfos()) {
 			if (extraInfoHolder.getName().equals(key)) {
 				extraInfoHolder.setContent(value);
 				found = true;
@@ -652,30 +626,16 @@ public class PomModuleDescriptorBuilder {
 	}
 
 	public void addExtraInfos(final List<ExtraInfoHolder> extraInfosHolder) {
-		for (ExtraInfoHolder extraInfoHolder : extraInfosHolder) {
+		for (final ExtraInfoHolder extraInfoHolder : extraInfosHolder) {
 			addExtraInfo(extraInfoHolder.getName(), extraInfoHolder.getContent());
 		}
 	}
 
-	@Deprecated
-	public static Map extractPomProperties(final Map extraInfo) {
-		Map r = new HashMap();
-		for (Iterator it = extraInfo.entrySet().iterator(); it.hasNext();) {
-			Map.Entry extraInfoEntry = (Map.Entry) it.next();
-			if (((String) extraInfoEntry.getKey()).startsWith(PROPERTIES)) {
-				String prop = ((String) extraInfoEntry.getKey()).substring(PROPERTIES.length()
-						+ EXTRA_INFO_DELIMITER.length());
-				r.put(prop, extraInfoEntry.getValue());
-			}
-		}
-		return r;
-	}
-
-	public static Map extractPomProperties(final List<ExtraInfoHolder> extraInfos) {
-		Map r = new HashMap();
-		for (ExtraInfoHolder extraInfoHolder : extraInfos) {
+	public static Map<String, String> extractPomProperties(final List<ExtraInfoHolder> extraInfos) {
+		final Map<String, String> r = new HashMap<>();
+		for (final ExtraInfoHolder extraInfoHolder : extraInfos) {
 			if ((extraInfoHolder.getName()).startsWith(PROPERTIES)) {
-				String prop = (extraInfoHolder.getName()).substring(PROPERTIES.length()
+				final String prop = (extraInfoHolder.getName()).substring(PROPERTIES.length()
 						+ EXTRA_INFO_DELIMITER.length());
 				r.put(prop, extraInfoHolder.getContent());
 			}

@@ -1,4 +1,4 @@
-package jp.cccis.marun.lib.configure;
+package jp.cccis.marun.configure;
 
 public class IllegalConfigurationException extends RuntimeException {
 

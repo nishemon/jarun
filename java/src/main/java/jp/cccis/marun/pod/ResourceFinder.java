@@ -1,4 +1,4 @@
-package jp.cccis.marun.lib;
+package jp.cccis.marun.pod;
 
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
@@ -22,12 +22,13 @@ public final class ResourceFinder {
 	public static List<Entry> findResourcesInDir(final String packageName, final Path dir) throws IOException {
 		List<Entry> resources = new ArrayList<>();
 
-		DirectoryStream<Path> ds = Files.newDirectoryStream(dir);
-		for (Path p : (Iterable<Path>) () -> ds.iterator()) {
-			if (Files.isDirectory(p)) {
-				resources.addAll(findResourcesInDir(packageName + "." + p.getFileName(), p));
-			} else {
-				resources.add(new Entry(p, packageName, p.getFileName().toString()));
+		try (DirectoryStream<Path> ds = Files.newDirectoryStream(dir)) {
+			for (Path p : (Iterable<Path>) ds::iterator) {
+				if (Files.isDirectory(p)) {
+					resources.addAll(findResourcesInDir(packageName + "." + p.getFileName(), p));
+				} else {
+					resources.add(new Entry(p, packageName, p.getFileName().toString()));
+				}
 			}
 		}
 		return resources;
@@ -36,7 +37,7 @@ public final class ResourceFinder {
 	public static List<Entry> findResourcesInJarFile(final Path jarFilePath) throws IOException {
 		List<Entry> resources = new ArrayList<>();
 		try (JarFile jarFile = new JarFile(jarFilePath.toFile())) {
-			jarFile.getManifest().getEntries().get("Main-Class");
+			// jarFile.getManifest().getEntries().get("Main-Class");
 			jarFile.stream().forEach(j -> {
 				if (j.getName().startsWith("META-INF/")) {
 					return;
