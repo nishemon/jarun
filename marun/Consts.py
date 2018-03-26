@@ -13,8 +13,14 @@ CONF_MAIN_SECTION = 'marun'
 APP_STATUS_FILE = 'marun.json'
 
 # Java
-JAVA_CLI_PACKAGE = 'jp.cccis.marun.lib.cli'
+JAVA_CLI_PACKAGE = 'jp.cccis.marun.cli'
 
 # Repository
 INIT_REPOSITORY_URLS = ['https://jcenter.bintray.com/', 'http://maven.cccis.jp.s3.amazonaws.com/release']
 SPECIAL_REPOSITORIES = {'bintray': True, 'jcenter': True, 'central': True}
+
+SYS_JARS = [
+    ('org.apache.ivy', 'ivy', '2.4'),
+    ('com.google.code.gson', 'gson', '2.8'),
+    ('jp.cccis.marun', 'marun', '0.1'),
+]

@@ -18,7 +18,7 @@ class RepositoryConf(object):
         if parser:
             self.__dict__.update(dict(parser.items(section)))
 
-    def toDict(self):
+    def to_dict(self):
         return {'name': self.name, 'baseurl': self.baseurl, 'type': self.type}
 
 
@@ -29,7 +29,7 @@ class AppConf(object):
     def add_install(self, artifact):
         self.install.append(artifact)
 
-    def toDict(self):
+    def to_dict(self):
         return {
             'install': self.install
         }
@@ -45,6 +45,7 @@ class CoreConf(object):
         self.symboliclink = False
         self.flavors = ''
         self.flavordir = 'flavors'
+        self.found_conffiles = bool(conffiles)
         for cf in conffiles:
             if not os.path.exists(cf):
                 pass  # todo
@@ -68,8 +69,8 @@ class CoreConf(object):
             return dict(self.parser.items(section))
         return default
 
-    def toDict(self):
+    def to_dict(self):
         return {
             'workdir': self.workdir,
-            'repositories': [x.toDict() for x in self.repositories]
+            'repositories': [x.to_dict() for x in self.repositories]
         }

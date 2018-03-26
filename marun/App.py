@@ -20,7 +20,7 @@ ATTR_RUNNABLE = 'runnable'
 ATTR_DEP_NAME = 'name'
 
 
-class AppRepository(object):
+class AppPod(object):
     def __init__(self, conf):
         self.conf = conf
         self.status = {ATTR_CONTEXT: []}
@@ -64,7 +64,7 @@ class AppRepository(object):
 
 class _AppContext(object):
     def __init__(self, repository, values):
-        # type: (AppRepository, dict) -> None
+        # type: (AppPod, dict) -> None
         self.repository = repository
         self.jars = values.get(ATTR_DEPENDENCIES, {})
         self.jardir = repository.conf.jardirname

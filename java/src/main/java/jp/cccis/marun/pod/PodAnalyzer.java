@@ -1,4 +1,4 @@
-package jp.cccis.marun.lib;
+package jp.cccis.marun.pod;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -14,10 +14,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import jp.cccis.marun.lib.ResourceFinder.Entry;
+import jp.cccis.marun.pod.ResourceFinder.Entry;
 import lombok.Getter;
 
-public class MarunExtractor {
+public class PodAnalyzer {
 	private ClassLoader loader;
 	private List<Class<?>> loadedClasses;
 	@Getter
@@ -26,14 +26,14 @@ public class MarunExtractor {
 	private final Map<String, List<String>> duplicateEntries = new LinkedHashMap<>();
 	private final List<Entry> resources = new ArrayList<>();
 
-	public MarunExtractor(final List<Path> jarfiles) throws ClassNotFoundException, IOException {
+	public PodAnalyzer(final List<Path> jarfiles) throws ClassNotFoundException, IOException {
 		this.loader = URLClassLoader.newInstance(jarfiles.stream().map(p -> {
 			try {
 				return p.toUri().toURL();
 			} catch (MalformedURLException e) {
 				throw new IllegalStateException(e);
 			}
-		}).toArray(URL[]::new));
+		}).toArray(URL[]::new), ClassLoader.getSystemClassLoader().getParent());
 		List<Entry> allResources = listupAllResources(jarfiles, this.duplicateEntries);
 		this.loadedClasses = loadAll(allResources, this.loader, this.resources, this.failureClasses);
 	}

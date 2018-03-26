@@ -1,4 +1,4 @@
-package jp.cccis.marun.lib.cli;
+package jp.cccis.marun.cli;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -19,14 +19,14 @@ import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializer;
 import com.google.gson.stream.JsonReader;
 
-import jp.cccis.marun.lib.MarunExtractor;
-import jp.cccis.marun.lib.MarunOutputReport;
-import jp.cccis.marun.lib.MarunOutputReport.JarStatus;
-import jp.cccis.marun.lib.Retriever;
-import jp.cccis.marun.lib.configure.Configuration;
+import jp.cccis.marun.configure.Configuration;
+import jp.cccis.marun.pod.PodAnalyzer;
+import jp.cccis.marun.repository.MarunOutputReport;
+import jp.cccis.marun.repository.Retriever;
+import jp.cccis.marun.repository.MarunOutputReport.JarStatus;
 
 public class Setup {
-	private final MarunExtractor extractor;
+	private final PodAnalyzer extractor;
 
 	private Setup(final List<JarStatus> jars) throws ClassNotFoundException, IOException {
 		List<Path> paths = new ArrayList<>();
@@ -38,7 +38,7 @@ public class Setup {
 				System.err.println(js);
 			}
 		}
-		this.extractor = new MarunExtractor(paths);
+		this.extractor = new PodAnalyzer(paths);
 	}
 
 	private List<String> findMain() {

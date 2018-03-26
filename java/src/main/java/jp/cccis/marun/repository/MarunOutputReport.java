@@ -1,4 +1,4 @@
-package jp.cccis.marun.lib;
+package jp.cccis.marun.repository;
 
 import java.nio.file.Path;
 import java.util.List;

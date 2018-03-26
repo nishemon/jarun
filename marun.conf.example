@@ -1,6 +1,6 @@
 [marun]
 ## Java executable
-## If not setting, jboot will search "java" in PATH.
+## If not setting, it will search "java" in PATH.
 #jvm=/usr/bin/java
 
 ## maven repositories in order

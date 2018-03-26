@@ -26,7 +26,7 @@ version = next(
         line.split('=', 2)[1].strip(" \t'")
         for line in open(os.path.join(here, SRC, '__init__.py'))
         if line.startswith('__version__ = ')
-    ), '0.0.2'
+    ), '0.1.0'
 )
 
 setup(

@@ -1,8 +1,10 @@
-package jp.cccis.marun.lib;
+package jp.cccis.marun.repository;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -41,9 +43,9 @@ import org.apache.ivy.plugins.resolver.IBiblioResolver;
 import org.apache.ivy.plugins.resolver.RepositoryResolver;
 import org.apache.ivy.util.Message;
 
-import jp.cccis.marun.lib.MarunOutputReport.JarStatus;
-import jp.cccis.marun.lib.MarunOutputReport.RetrieveStatus;
-import jp.cccis.marun.lib.ivy.PomCustomModuleDescriptorParser;
+import jp.cccis.marun.repository.MarunOutputReport.JarStatus;
+import jp.cccis.marun.repository.MarunOutputReport.RetrieveStatus;
+import jp.cccis.marun.repository.ivy.PomCustomModuleDescriptorParser;
 
 public class Retriever {
 	private final Ivy ivy;
@@ -217,7 +219,7 @@ public class Retriever {
 
 	public static void main(final String... args) throws ParseException, IOException {
 		DefaultRepositoryCacheManager cm = new DefaultRepositoryCacheManager();
-		new File("./ivy").mkdirs();
+		Files.createDirectories(Paths.get("./ivy"));
 		cm.setBasedir(new File("./ivy"));
 		List<RepositoryResolver> resolverList = Arrays.stream(args, 0, args.length - 1).map(URI::create)
 				.map(Retriever::buildResolver).collect(Collectors.toList());

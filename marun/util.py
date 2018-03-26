@@ -54,15 +54,15 @@ def download_package(repos, org, name, save, verstr=None):
         if not verstr:
             verstr = versioning.find('release').text
         for v in versioning.find('versions').findall('version'):
-            if v.text == verstr:
-                jarname = '%s-%s.jar' % (name, verstr)
-                jarurl = '/'.join([base, verstr, jarname])
-                logger.info("[FOUND] %s %s in %s", name, verstr, jarurl)
+            if v.text.startswith(verstr):
+                jarname = '%s-%s.jar' % (name, v.text)
+                jarurl = '/'.join([base, v.text, jarname])
+                logger.info("[FOUND] %s %s in %s", name, v.text, jarurl)
                 jarpath = os.path.join(save, jarname)
                 stat = DownloadStatus()
                 urllib.urlretrieve(jarurl, jarpath, lambda cnt, size, total: stat.update(size, total))
                 stat.finish()
-                return jarpath
+                return jarname
     return None
 
 

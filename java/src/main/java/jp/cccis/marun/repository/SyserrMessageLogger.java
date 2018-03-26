@@ -1,4 +1,4 @@
-package jp.cccis.marun.lib;
+package jp.cccis.marun.repository;
 
 import org.apache.ivy.util.AbstractMessageLogger;
 import org.apache.ivy.util.Message;

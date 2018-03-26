@@ -77,7 +77,7 @@ class Java(object):
         self.rundir = '.'
         self.syspath = []
 
-    def runClass(self, classpaths, flavorargs, javaargstrs, clazz, cmds):
+    def run_class(self, classpaths, flavorargs, javaargstrs, clazz, cmds):
         args = [self.javabin, '-classpath', ':'.join(classpaths)]
         args.extend(_merge_options(flavorargs, javaargstrs))
         args.append(clazz)
@@ -94,7 +94,7 @@ class Java(object):
         else:
             self.syspath.append(classpath)
 
-    def sysRun(self, args, inconfs):
+    def sys_run(self, args, inconfs):
         cmds = [self.javabin, '-classpath', ':'.join(self.syspath)]
         if isinstance(args, list):
             start = len(cmds)

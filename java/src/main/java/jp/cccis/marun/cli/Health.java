@@ -1,4 +1,4 @@
-package jp.cccis.marun.lib.cli;
+package jp.cccis.marun.cli;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

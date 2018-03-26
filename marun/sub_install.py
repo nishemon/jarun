@@ -35,7 +35,7 @@ def _setup(conf, app, artifacts, keepold=False):
     args = ['Setup', 'runtime']
     args.extend(artifacts)
     sysjava = util.new_sys_java(conf)
-    (code, output) = sysjava.sysRun(args, conf.toDict())
+    (code, output) = sysjava.sys_run(args, conf.to_dict())
     if code != 0:
         return False
     builder = app.new_context_builder(artifacts)
@@ -49,7 +49,7 @@ def _setup(conf, app, artifacts, keepold=False):
                 module_id = '%s::%s' % (d['id'], classifier)
             else:
                 module_id = d['id']
-            is_update = (is_update | _add_new(builder, module_id, d, curdeps, current))
+            is_update = (_add_new(builder, module_id, d, curdeps, current) or is_update)
         if not is_update:
             builder.revert()
             return False
@@ -85,7 +85,7 @@ def _check_errors(output):
 
 
 def install(conf, args):
-    app = App.AppRepository(conf)
+    app = App.AppPod(conf)
     installed = app.get_current_context()
     if not args.add and installed:
         return False, 'already installed directory. Use "-a" for add jar file if you want.'
@@ -98,7 +98,7 @@ def install(conf, args):
 
 
 def update(conf, args):
-    app = App.AppRepository(conf)
+    app = App.AppPod(conf)
     installed = app.get_current_context()
     if not installed:
         return False, 'not found "%s": no marun installed status.' % Consts.APP_STATUS_FILE

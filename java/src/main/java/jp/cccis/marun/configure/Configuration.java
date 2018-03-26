@@ -1,4 +1,4 @@
-package jp.cccis.marun.lib.configure;
+package jp.cccis.marun.configure;
 
 import java.io.File;
 import java.util.List;
@@ -6,7 +6,7 @@ import java.util.List;
 import org.apache.ivy.core.cache.DefaultRepositoryCacheManager;
 import org.apache.ivy.plugins.resolver.ChainResolver;
 
-import jp.cccis.marun.lib.Retriever;
+import jp.cccis.marun.repository.Retriever;
 import lombok.Data;
 
 @Data

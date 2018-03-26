@@ -1,4 +1,4 @@
-package jp.cccis.marun.lib.configure;
+package jp.cccis.marun.configure;
 
 import java.net.URI;
 import java.net.URISyntaxException;
