@@ -8,6 +8,8 @@ ENV_MARUN_JAVA = 'MARUN_JAVA'
 
 DEFAULT_CONF_FILE = '/etc/marun.conf'
 CONF_MAIN_SECTION = 'marun'
+DEFAULT_WORKDIR = '/var/lib/marun'
+CONF_FILE_BASE_FILE = 'marun.conf.example'
 
 # App
 APP_STATUS_FILE = 'marun.json'

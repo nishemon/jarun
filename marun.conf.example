@@ -50,3 +50,7 @@ XX=+UseTransparentHugePages +AlwaysPreTouch
 ## The value '[]' is a placeholder of the flavor argument.
 options=-Xmx[] -Xms[]
 
+[flavor:compoom]
+compressor=zstd --rm, gzip, lz4 --rm, lzop
+
+

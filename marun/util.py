@@ -66,8 +66,11 @@ def download_package(repos, org, name, save, verstr=None):
     return None
 
 
-def find_cmds(paths, name):
-    return [b for b in [os.path.join(p, name) for p in paths] if os.access(b, os.X_OK)]
+def find_cmds(name, paths = None):
+    search = paths
+    if not paths:
+        search = os.getenv('PATH').split(':')
+    return [b for b in [os.path.join(p, name) for p in search] if os.access(b, os.X_OK)]
 
 
 def find_javas():

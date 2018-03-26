@@ -48,16 +48,17 @@ class CoreConf(object):
         self.found_conffiles = bool(conffiles)
         for cf in conffiles:
             if not os.path.exists(cf):
-                pass  # todo
+                continue
             parser.read(cf)
             self.__dict__.update(dict(parser.items(Consts.CONF_MAIN_SECTION)))
+            self.valid = True
         repos = []
         for reponame in self.repositories.split(','):
             if parser.has_section('repository:' + reponame):
                 repos.append(RepositoryConf(parser, reponame))
             elif Consts.SPECIAL_REPOSITORIES.get(reponame, False):
                 repos.append(RepositoryConf(None, reponame))
-        self.repositories = repos
+        self.repository_list = repos
         self.parser = parser
 
     def toappconf(self):
@@ -74,3 +75,6 @@ class CoreConf(object):
             'workdir': self.workdir,
             'repositories': [x.to_dict() for x in self.repositories]
         }
+
+    def isValid(self):
+        return self.valid

@@ -57,6 +57,5 @@ setup(
         ],
     },
     include_package_data=True,
-    data_files=[('/etc', ['marun.conf.example'])],
     keywords=['java', 'maven', 'deploy', 'ivy', 'repository', 'package', 'artifact', 'run'],
 )
