@@ -28,4 +28,4 @@ dist
 # marun
 lib*
 marun.json
-
+test/
