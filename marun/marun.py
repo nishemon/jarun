@@ -46,26 +46,36 @@ XX=+UseTransparentHugePages +AlwaysPreTouch
     repository_template = """
 [repository:%s]
 baseurl=%s
+%s
 
 """
-    url = input("Your Maven Repository URL []:")
+    url = raw_input("Your Maven Repository URL []:")
     name = ''
     repo = ''
-    if not url:
-        name = input("Your Maven Repository Name [private]:")
-        name = name if name else 'private'
-        repo = repository_template % (name, url)
+    if url:
+        append = ""
+        if url.startswith('s3://'):
+            accessKey = raw_input("S3 Access Key []:")
+            secretKey = raw_input("S3 Secret Key []:")
+            append = "accessKey=%s\nsecretKey=%s" % (accessKey, secretKey)
+        name = raw_input("Your Maven Repository Name [private]:")
+        name = name or 'private'
+        repo = repository_template % (name, url, append)
     contents = file_template % ((name + ',') if name else '', repo)
     with open(path, 'w') as f:
         f.write(contents)
-    print("Wrote new configuration to [%s]" % path)
+    print("Wrote new configuration to '%s'" % path)
+
 
 def main():
     gconffile = os.environ.get(Consts.ENV_CONF_FILE, Consts.DEFAULT_CONF_FILE)
     if not gconffile or not os.path.exists(gconffile):
-        print("configuration file is not found.")
-        # TODO am i root?
-        setup_conffile(gconffile)
+        print("configuration file is not found!")
+        if os.getuid() == 0 or os.access(os.path.dirname(gconffile), os.W_OK):
+            setup_conffile(gconffile)
+        else:
+            print("set env '%s' for user or run as super user" % Consts.ENV_CONF_FILE)
+            exit(-1)
     conf = Conf.CoreConf([gconffile])
     if not conf.isValid():
         print("Any config files is not found.")

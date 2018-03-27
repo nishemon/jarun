@@ -30,15 +30,16 @@ def _add_new(builder, module_id, new, curdeps, cur):
     return True
 
 
-def _setup(conf, app, artifacts, keepold=False):
+def install_to_pod(conf, app, artifacts, keepold=False):
     current = app.get_current_context()
+    artifact_set = frozenset(artifacts)
     args = ['Setup', 'runtime']
-    args.extend(artifacts)
+    args.extend(artifact_set)
     sysjava = util.new_sys_java(conf)
     (code, output) = sysjava.sys_run(args, conf.to_dict())
     if code != 0:
         return False
-    builder = app.new_context_builder(artifacts)
+    builder = app.new_context_builder(artifact_set)
     try:
         deps = output['resolve']['dependencies']
         curdeps = current.get_dependency_dict() if current else {}
@@ -72,7 +73,7 @@ def _check_errors(output):
         for undef, errors in failures.items():
             classes = [x for x in errors if x.find('#') < 0]
             mains = [x for x in errors if 0 <= x.find('#main')]
-            logger.warning("%s is undefine, so invalidate the below.", undef)
+            logger.warning("%s is undefined, so invalidate the below.", undef)
             if classes:
                 logger.warning("  %s", "\n".join(["class: %s" % x for x in classes]))
             if mains:
@@ -86,13 +87,16 @@ def _check_errors(output):
 
 def install(conf, args):
     app = App.AppPod(conf)
-    installed = app.get_current_context()
-    if not args.add and installed:
+    current = app.get_current_context()
+    if not args.add and current:
         return False, 'already installed directory. Use "-a" for add jar file if you want.'
-    artifacts = installed and installed.get_installs() or []
+    installed = current and current.get_installs() or set()
+    artifacts = installed | set(args.artifacts)
+    # TODO: parse version string
     # TODO check conflict
-    artifacts.extend(args.artifacts)
-    if _setup(conf, app, artifacts):
+    if artifacts <= installed:
+        return True
+    if install_to_pod(conf, app, artifacts):
         return True, None
     return False, None
 
@@ -102,7 +106,7 @@ def update(conf, args):
     installed = app.get_current_context()
     if not installed:
         return False, 'not found "%s": no marun installed status.' % Consts.APP_STATUS_FILE
-    if _setup(conf, app, installed.get_installs(), args.keepold):
+    if install_to_pod(conf, app, installed.get_installs(), args.keepold):
         return True, None
     return False, None
 

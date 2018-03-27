@@ -22,8 +22,8 @@ import com.google.gson.stream.JsonReader;
 import jp.cccis.marun.configure.Configuration;
 import jp.cccis.marun.pod.PodAnalyzer;
 import jp.cccis.marun.repository.MarunOutputReport;
-import jp.cccis.marun.repository.Retriever;
 import jp.cccis.marun.repository.MarunOutputReport.JarStatus;
+import jp.cccis.marun.repository.Retriever;
 
 public class Setup {
 	private final PodAnalyzer extractor;
@@ -56,8 +56,8 @@ public class Setup {
 		Configuration config = gson.fromJson(reader, Configuration.class);
 		Retriever retriever = Configuration.build(config);
 		List<ModuleRevisionId> requires = new ArrayList<>();
-		for (int i = 0; i < args.length; i++) {
-			String[] cols = args[1].split(":", 4);
+		for (int i = 1; i < args.length; i++) {
+			String[] cols = args[i].split(":", 4);
 			if (3 < cols.length) {
 				requires.add(Retriever.makeRevision(cols[0], cols[1], cols[2], cols[3]));
 			} else {

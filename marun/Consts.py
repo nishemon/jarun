@@ -22,7 +22,11 @@ INIT_REPOSITORY_URLS = ['https://jcenter.bintray.com/', 'http://maven.cccis.jp.s
 SPECIAL_REPOSITORIES = {'bintray': True, 'jcenter': True, 'central': True}
 
 SYS_JARS = [
-    ('org.apache.ivy', 'ivy', '2.4'),
-    ('com.google.code.gson', 'gson', '2.8'),
-    ('jp.cccis.marun', 'marun', '0.1'),
+    ('jp.cccis.marun', 'marun', '0.1.+'),
+    ('org.apache.ivy', 'ivy', '2.4.+'),
+    ('com.google.code.gson', 'gson', '2.8.+'),
 ]
+
+S3_ADDONS = frozenset([
+    'com.amazonaws:aws-java-sdk-s3:1.11.+'
+])

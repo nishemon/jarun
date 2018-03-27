@@ -42,7 +42,7 @@ class DownloadStatus(object):
         sys.stdout.write("\n")
 
 
-def download_package(repos, org, name, save, verstr=None):
+def download_package(repos, org, name, save='.', verstr=None):
     for r in repos:
         base = '/'.join([r.rstrip('/'), org.replace('.', '/'), name])
         maven = base + '/maven-metadata.xml'
@@ -51,9 +51,11 @@ def download_package(repos, org, name, save, verstr=None):
             continue
         logger.info("[GOT] %s", maven)
         versioning = tree.find('versioning')
-        if not verstr:
-            verstr = versioning.find('release').text
-        for v in versioning.find('versions').findall('version'):
+        release = versioning.find('release').text
+        verstr = verstr and verstr.replace('+', '')
+        if not verstr or release.startswith(verstr):
+            verstr = release
+        for v in versioning.find('versions').findall('version')[::-1]:
             if v.text.startswith(verstr):
                 jarname = '%s-%s.jar' % (name, v.text)
                 jarurl = '/'.join([base, v.text, jarname])
@@ -62,7 +64,7 @@ def download_package(repos, org, name, save, verstr=None):
                 stat = DownloadStatus()
                 urllib.urlretrieve(jarurl, jarpath, lambda cnt, size, total: stat.update(size, total))
                 stat.finish()
-                return jarname
+                return jarname, v.text
     return None
 
 
@@ -79,7 +81,7 @@ def find_javas():
     if jh and os.path.exists(jh):
         paths.append(jh)
     paths.extend(os.getenv('PATH').split(':'))
-    javabins = find_cmds(paths, 'java')
+    javabins = find_cmds('java', paths)
     return javabins
 
 
@@ -88,10 +90,11 @@ def mkdirs(dirpath):
         os.makedirs(dirpath)
 
 
-def new_sys_java(conf):
+def new_sys_java(conf, libdir=None):
     rootdir = conf.workdir
-    libdir = os.path.join(rootdir, 'lib')
+    libdir = libdir or os.path.join(rootdir, 'lib')
     java = Java.Java(conf)
     java.chdir(rootdir)
     java.add_syspath(libdir)
     return java
+

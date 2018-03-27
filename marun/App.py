@@ -3,13 +3,11 @@
 import os
 import shutil
 import time
-import ConfigParser
 import json
 import codecs
 import tempfile
 
 import Consts
-import util
 
 ATTR_INSTALL = 'install'
 ATTR_DEPENDENCIES = 'dependencies'
@@ -18,16 +16,18 @@ ATTR_CONTEXT = 'context'
 ATTR_JARDIR = 'jardir'
 ATTR_RUNNABLE = 'runnable'
 ATTR_DEP_NAME = 'name'
-
+ATTR_DEP_REVISION = 'revision'
 
 class AppPod(object):
-    def __init__(self, conf):
+    def __init__(self, conf, root='.'):
         self.conf = conf
         self.status = {ATTR_CONTEXT: []}
         self.last = None
-        if not os.path.exists(Consts.APP_STATUS_FILE):
+        self.root = os.path.abspath(root)
+        self.status_file = os.path.join(self.root, Consts.APP_STATUS_FILE)
+        if not os.path.exists(self.status_file):
             return
-        with codecs.open(Consts.APP_STATUS_FILE, encoding=Consts.UTF8) as f:
+        with codecs.open(self.status_file, encoding=Consts.UTF8) as f:
             self.status = json.load(f)
         self.last = str(max([int(x) for x in self.status[ATTR_CONTEXT]]))
 
@@ -39,10 +39,10 @@ class AppPod(object):
         self.status[str(newid)] = context
         if self.last and jardir:
             laststat = self.status[self.last]
-            curdir = laststat.get(ATTR_JARDIR, self.conf.jardirname)
+            curdir = os.path.join(self.root, laststat.get(ATTR_JARDIR, self.conf.jardirname))
             if laststat.get(ATTR_RUNNABLE, False) or keepold:
                 olddir = "%s.%s" % (curdir, self.last)
-                self.status[self.last][ATTR_JARDIR] = olddir
+                self.status[self.last][ATTR_JARDIR] = os.path.basename(olddir)
                 os.rename(curdir, olddir)
             else:
                 if os.path.exists(curdir):
@@ -50,11 +50,16 @@ class AppPod(object):
                 self.status.pop(self.last)
                 self.status[ATTR_CONTEXT].remove(int(self.last))
                 # TODO: remove oldest / remove if lib is deleted
-        os.rename(jardir, self.conf.jardirname)
-        tmpfile = Consts.APP_STATUS_FILE + "." + str(newid)
+        libdir = os.path.join(self.root, self.conf.jardirname)
+        # XXX: workaround in WSL?
+        time.sleep(1)
+        os.rename(jardir, libdir)
+        tmpfile = self.status_file + "." + str(newid)
         with codecs.open(tmpfile, 'w', Consts.UTF8) as f:
             json.dump(self.status, f, ensure_ascii=False, indent=4)
-        os.rename(tmpfile, Consts.APP_STATUS_FILE)
+        os.rename(tmpfile, self.status_file)
+        self.last = str(newid)
+        return _AppContext(self, context)
 
     def get_current_context(self):
         if self.last:
@@ -71,25 +76,25 @@ class _AppContext(object):
         self.resourcedir = 'resources'
         self.installs = values[ATTR_INSTALL]
         self.mains = values.get(ATTR_MAINS, {})
-        self.luck_jars = None
+        self.lack_jars = None
         self.uncontrols = []
 
     def _check_jars(self):
-        if self.luck_jars is not None:
+        if self.lack_jars is not None:
             return
         need_jarnames = dict([(self.jars[x][ATTR_DEP_NAME], x) for x in self.jars])
         if os.path.isdir(self.jardir):
             self.uncontrols = [x for x in os.listdir(self.jardir) if
                                x.endswith(".jar") and not need_jarnames.pop(x, False)]
-        self.luck_jars = need_jarnames
+        self.lack_jars = need_jarnames
 
     def get_uncontrol_jars(self):
         self._check_jars()
         return self.uncontrols
 
-    def get_luck_jars(self):
+    def get_lack_jars(self):
         self._check_jars()
-        return self.luck_jars
+        return self.lack_jars
 
     def get_jar_path(self, jarname):
         return os.path.join(self.jardir, jarname)
@@ -101,7 +106,7 @@ class _AppContext(object):
         pass
 
     def get_installs(self):
-        return self.installs
+        return frozenset(self.installs)
 
     def get_mains(self):
         return self.mains
@@ -117,15 +122,15 @@ class _AppContextBuilder(object):
     def __init__(self, repository, installs):
         self.repository = repository
         self.conf = repository.conf
-        self.installs = installs
+        self.installs = [x for x in installs]
         self.id = int(time.time())
         self.dependencies = {}
-        check = "%s.%d" % (self.conf.jardirname, self.id)
+        check = os.path.join(repository.root, "%s.%d" % (self.conf.jardirname, self.id))
         try:
             os.mkdir(check)
             self.tempdir = check
         except OSError:
-            self.tempdir = tempfile.mkdtemp(prefix=self.conf.jardirname + "-", dir=".")
+            self.tempdir = tempfile.mkdtemp(prefix=self.conf.jardirname + "-", dir=repository.root)
 
     def _add(self, jarpath, hard=None):
         name = os.path.basename(jarpath)
@@ -147,13 +152,21 @@ class _AppContextBuilder(object):
         attr[ATTR_DEP_NAME] = name
         self.dependencies[modid] = attr
 
+    def add_direct(self, modid, jarname, revision):
+        self.dependencies[modid] = {
+            ATTR_DEP_NAME: jarname,
+            ATTR_DEP_REVISION: revision,
+        }
+
+    def get_working(self):
+        return self.tempdir
+
     def commit(self, mains, resources, keepold=False):
-        self.repository.update(self.id, {
+        return self.repository.update(self.id, {
             ATTR_INSTALL: self.installs,
             ATTR_DEPENDENCIES: self.dependencies,
             ATTR_MAINS: mains,
         }, self.tempdir, keepold=keepold)
-        return True
 
     def revert(self):
         shutil.rmtree(self.tempdir)

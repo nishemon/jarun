@@ -7,6 +7,7 @@ import org.apache.ivy.plugins.resolver.BintrayResolver;
 import org.apache.ivy.plugins.resolver.IBiblioResolver;
 import org.apache.ivy.plugins.resolver.RepositoryResolver;
 
+import jp.cccis.marun.repository.ivy.S3DownloadOnlyRepository;
 import lombok.Data;
 
 @Data
@@ -14,6 +15,8 @@ public class Repository {
 	private String baseurl;
 	private String type = "maven";
 	private String name;
+	private String accessKey;
+	private String secretKey;
 
 	public static RepositoryResolver build(final Repository conf) throws IllegalConfigurationException {
 		switch (conf.name) {
@@ -37,13 +40,21 @@ public class Repository {
 		if (root.getHost().contentEquals("jcenter.bintray.com")) {
 			return new BintrayResolver();
 		}
+		RepositoryResolver ret = null;
 		switch (conf.type.toLowerCase()) {
 		case "maven":
 			IBiblioResolver resolver = new IBiblioResolver();
 			resolver.setM2compatible(true);
 			resolver.setName(root.getHost());
 			resolver.setRoot(root.toString());
-			return resolver;
+			ret = resolver;
+			break;
+		}
+		if (ret != null) {
+			if (root.getScheme().contentEquals("s3")) {
+				ret.setRepository(new S3DownloadOnlyRepository(root.getHost(), conf.accessKey, conf.secretKey));
+			}
+			return ret;
 		}
 		throw new IllegalConfigurationException("Invalid type '%s'", conf.type);
 	}

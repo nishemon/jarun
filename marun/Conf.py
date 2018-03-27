@@ -9,17 +9,38 @@ import Consts
 import util
 
 
+class StaticRepository(object):
+    def __init__(self, url):
+        self.name = url
+        self.baseurl = url
+
+    def to_dict(self):
+        return {
+            'baseurl': self.baseurl,
+            'type': 'maven',
+            'name': self.name,
+        }
+
+
 class RepositoryConf(object):
     def __init__(self, parser, repo):
         section = 'repository:' + repo
         self.name = repo
         self.baseurl = None
         self.type = 'maven'
+        self.accesskey = None
+        self.secretkey = None
         if parser:
             self.__dict__.update(dict(parser.items(section)))
 
     def to_dict(self):
-        return {'name': self.name, 'baseurl': self.baseurl, 'type': self.type}
+        return {
+            'baseurl': self.baseurl,
+            'type': self.type,
+            'name': self.name,
+            'accessKey': self.accesskey,
+            'secretKey': self.secretkey,
+        }
 
 
 class AppConf(object):
@@ -46,6 +67,7 @@ class CoreConf(object):
         self.flavors = ''
         self.flavordir = 'flavors'
         self.found_conffiles = bool(conffiles)
+        self.workdir = '/var/lib/marun'
         for cf in conffiles:
             if not os.path.exists(cf):
                 continue
@@ -72,8 +94,8 @@ class CoreConf(object):
 
     def to_dict(self):
         return {
-            'workdir': self.workdir,
-            'repositories': [x.to_dict() for x in self.repositories]
+            'workdir': os.path.abspath(self.workdir),
+            'repositories': [x.to_dict() for x in self.repository_list]
         }
 
     def isValid(self):

@@ -13,8 +13,11 @@ dependencies {
 	deployer 'org.springframework.build.aws:org.springframework.build.aws.maven:3.0.0.RELEASE'
 
 	compileOnly 'org.projectlombok:lombok:1.+'
-	compile 'org.apache.ivy:ivy:+'
-	compile 'com.google.code.gson:gson:2.+'
+	compile 'org.apache.ivy:ivy:2.4.+'
+	compile 'com.google.code.gson:gson:2.8.+'
+
+	compileOnly 'com.amazonaws:aws-java-sdk-s3:1.11.+'
+
 }
 
 uploadArchives {
@@ -28,7 +31,7 @@ uploadArchives {
 			}
 			pom.groupId = 'jp.cccis.marun'
 			pom.artifactId = 'marun'
-			pom.version = "0.0.1"
+			pom.version = "0.1.0"
 		}
 	}
 }
