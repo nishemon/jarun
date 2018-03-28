@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import __init__
+
 # General
 UTF8 = 'UTF-8'
 
@@ -22,7 +24,7 @@ INIT_REPOSITORY_URLS = ['https://jcenter.bintray.com/', 'http://maven.cccis.jp.s
 SPECIAL_REPOSITORIES = {'bintray': True, 'jcenter': True, 'central': True}
 
 SYS_JARS = [
-    ('jp.cccis.marun', 'marun', '0.1.+'),
+    ('jp.cccis.marun', 'marun', __init__.__version__),
     ('org.apache.ivy', 'ivy', '2.4.+'),
     ('com.google.code.gson', 'gson', '2.8.+'),
 ]

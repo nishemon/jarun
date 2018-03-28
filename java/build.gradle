@@ -1,38 +1,91 @@
+plugins {
+    id "com.jfrog.bintray" version "1.7.3"
+	id "com.gorylenko.gradle-git-properties" version "1.4.21"
+}
+
 apply plugin: 'java'
 apply plugin: 'maven'
+
+def S3_URL = 'MavenS3.url'
+def AWS_KEY = 'MavenS3.accessKey'
+def AWS_SECRET = 'MavenS3.secretKey'
+def REPO_DIR = 'MavenLocal'
+
+def BINTRAY_USER = 'bintray.user'
+def BINTRAY_KEY = 'bintray.key'
+def BINTRAY_GPG_PHRASE = 'bintray.gpg_phrase'
+
+group = 'jp.cccis.marun'
+// TODO: load from git tag
+version = '0.1.0'
+
 
 configurations {
 	deployer
 }
 
-repositories {
-	jcenter()
-}
+repositories.jcenter()
 
 dependencies {
-	deployer 'org.springframework.build.aws:org.springframework.build.aws.maven:3.0.0.RELEASE'
+	deployer 'org.springframework.build:aws-maven:5.0.0.RELEASE'
 
 	compileOnly 'org.projectlombok:lombok:1.+'
 	compile 'org.apache.ivy:ivy:2.4.+'
 	compile 'com.google.code.gson:gson:2.8.+'
 
 	compileOnly 'com.amazonaws:aws-java-sdk-s3:1.11.+'
-
 }
 
+def packPython() {
+	def root = '../'
+	def pymod = file(root + 'marun/__init__.py')
+	pymod.write(String.format("__version__ = '%s'", project.version))
+	exec {
+		workingDir root
+		executable 'python'
+		args 'setup.py' 'bdist_wheel'
+	}
+	print 'you must execute> twine upload dist/*'
+}
+
+// upload for test
 uploadArchives {
 	repositories {
 		mavenDeployer {
 			configuration = configurations.deployer
-			if (project.hasProperty("S3.url") && project.hasProperty("S3.accessKey") && project.hasProperty("S3.secretKey")) {
-				repository(url: getProperty("S3.url")) {
-					authentication(userName: getProperty("S3.accessKey"), passphrase: getProperty("S3.secretKey"))
+			if (project.hasProperty(S3_URL) && project.hasProperty(AWS_KEY) && project.hasProperty(AWS_SECRET)) {
+				repository(url: project.getProperty(S3_URL)) {
+					authentication(userName: project.getProperty(AWS_KEY), passphrase: project.getProperty(AWS_SECRET))
 				}
+			} else if (project.hasProperty(REPO_DIR)) {
+				repository(url: 'file://localhost' + project.getProperty(REPO_DIR))
 			}
-			pom.groupId = 'jp.cccis.marun'
-			pom.artifactId = 'marun'
-			pom.version = "0.1.0"
+			pom.artifactId = project.name
 		}
 	}
+	doLast { packPython() }
 }
 
+bintray {
+	user = project.hasProperty(BINTRAY_USER) ? project.getProperty(BINTRAY_USER) : System.getenv('BINTRAY_USER')
+	key = project.hasProperty(BINTRAY_KEY) ? project.getProperty(BINTRAY_KEY) : System.getenv('BINTRAY_API_KEY')
+
+	pkg {
+		repo = 'generic'
+		name = project.name
+		licenses = ['MIT']
+		websiteUrl = 'https://github.com/nishemon/marun'
+		issueTrackerUrl = 'https://github.com/nishemon/marun/issues'
+		vcsUrl = 'https://github.com/nishemon/marun.git'
+		version {
+			name = project.version
+			released = new Date()
+			gpg {
+				sign = true
+				passphrase = project.hasProperty(BINTRAY_GPG_PHRASE) ? project.getProperty(BINTRAY_GPG_PHRASE) : System.getenv('BINTRAY_GPG_PASSPHRASE')
+			}
+		}
+	}
+	publications = ['mavenPublication']
+	configurations = ['archives']
+}

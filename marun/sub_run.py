@@ -122,6 +122,8 @@ def setup_subcmd(subparsers):
     run_parser.add_argument('-J', nargs='+', help="JVM argument.", dest='jvmargs')
     run_parser.add_argument('-D', nargs='+', help="JVM system property (pass-through JVM argument).", dest='declare')
     run_parser.add_argument('-n', action='store_true', help="dryrun: print java command")
+#    run_parser.add_argument('-i', '--install', nargs='+', help="")
+#    run_parser.add_argument('-u', '--update', nargs='+', help="")
     run_parser.add_argument('mainclass')
     run_parser.add_argument('classargs', nargs=argparse.REMAINDER)
     run_parser.set_defaults(handler=run)
