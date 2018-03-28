@@ -11,14 +11,14 @@ It has no capability to compile, archive and do other build commands unlike Apac
 > sudo pip install marun
 ```
 
-2. install a jar (gradle short format)
+2. install a jar (example: jruby)
 ```
-> sudo marun install org.apache.commons:commons-compress:+
+> sudo marun install org.jruby:jruby-core:1.7.+
 ```
 
 3. run
 ```
-> sudo marun run org.apache.commons.compress.archivers.sevenz.CLI
+> sudo marun run jruby.Main -v
 ```
 
 ## configuration

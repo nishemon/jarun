@@ -44,7 +44,12 @@ public class PodAnalyzer {
 		Set<String> uniq = new HashSet<>();
 		for (Path p : jars) {
 			for (Entry ent : ResourceFinder.findResourcesInJarFile(p)) {
-				String fullname = ent.getPackageName() + '.' + ent.getResourceName();
+				String fullname;
+				if (ent.getPackageName().isEmpty()) {
+					fullname = ent.getResourceName();
+				} else {
+					fullname = ent.getPackageName() + '.' + ent.getResourceName();
+				}
 				if (uniq.add(fullname)) {
 					resources.add(ent);
 				} else {
@@ -63,10 +68,15 @@ public class PodAnalyzer {
 			String res = ent.getResourceName();
 			if (res.endsWith(".class")) {
 				String cname = res.substring(0, res.length() - ".class".length());
-				String fullcname = ent.getPackageName() + "." + cname;
+				String fullcname;
+				if (ent.getPackageName().isEmpty()) {
+					fullcname = cname;
+				} else {
+					fullcname = ent.getPackageName() + "." + cname;
+				}
 				try {
 					classes.add(loader.loadClass(fullcname));
-				} catch (NoClassDefFoundError e) {
+				} catch (NoClassDefFoundError | SecurityException e) {
 					failures.computeIfAbsent(e.getMessage().replace('/', '.'), c -> new ArrayList<>()).add(fullcname);
 				}
 			} else {

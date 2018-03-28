@@ -72,7 +72,7 @@ class _AppContext(object):
         # type: (AppPod, dict) -> None
         self.repository = repository
         self.jars = values.get(ATTR_DEPENDENCIES, {})
-        self.jardir = repository.conf.jardirname
+        self.jardir = os.path.join(repository.root, repository.conf.jardirname)
         self.resourcedir = 'resources'
         self.installs = values[ATTR_INSTALL]
         self.mains = values.get(ATTR_MAINS, {})
