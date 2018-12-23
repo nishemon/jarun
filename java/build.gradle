@@ -1,6 +1,6 @@
 plugins {
     id "com.jfrog.bintray" version "1.7.3"
-	id "com.gorylenko.gradle-git-properties" version "1.4.21"
+	id "com.gorylenko.gradle-git-properties" version "1.5.2"
 }
 
 apply plugin: 'java'
@@ -17,8 +17,7 @@ def BINTRAY_GPG_PHRASE = 'bintray.gpg_phrase'
 
 group = 'jp.cccis.marun'
 // TODO: load from git tag
-version = '0.1.0'
-
+version = '0.1.1'
 
 configurations {
 	deployer
@@ -34,6 +33,10 @@ dependencies {
 	compile 'com.google.code.gson:gson:2.8.+'
 
 	compileOnly 'com.amazonaws:aws-java-sdk-s3:1.11.+'
+}
+
+gitProperties {
+	gitPropertiesDir = "${project.rootDir}/.."
 }
 
 def packPython() {
@@ -55,7 +58,7 @@ uploadArchives {
 			configuration = configurations.deployer
 			if (project.hasProperty(S3_URL) && project.hasProperty(AWS_KEY) && project.hasProperty(AWS_SECRET)) {
 				repository(url: project.getProperty(S3_URL)) {
-					authentication(userName: project.getProperty(AWS_KEY), passphrase: project.getProperty(AWS_SECRET))
+					authentication(userName: project.getProperty(AWS_KEY), password: project.getProperty(AWS_SECRET))
 				}
 			} else if (project.hasProperty(REPO_DIR)) {
 				repository(url: 'file://localhost' + project.getProperty(REPO_DIR))

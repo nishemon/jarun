@@ -52,7 +52,7 @@ public class PomModuleDescriptorBuilder {
 
 	private static final int DEPENDENCY_MANAGEMENT_KEY_PARTS_COUNT = 4;
 
-	public static final Configuration[] MAVEN2_CONFIGURATIONS = new Configuration[] {
+	protected static final Configuration[] MAVEN2_CONFIGURATIONS = new Configuration[] {
 			new Configuration("default", Visibility.PUBLIC,
 					"runtime dependencies and master artifact can be used with this conf",
 					new String[] { "runtime", "master" }, true, null),
@@ -112,8 +112,8 @@ public class PomModuleDescriptorBuilder {
 			"ejb", "bundle", "maven-plugin", "eclipse-plugin", "jbi-component",
 			"jbi-shared-library", "orbit", "hk2-jar" });
 
-	static interface ConfMapper {
-		public void addMappingConfs(DefaultDependencyDescriptor dd, boolean isOptional);
+	interface ConfMapper {
+		void addMappingConfs(DefaultDependencyDescriptor dd, boolean isOptional);
 	}
 
 	static {

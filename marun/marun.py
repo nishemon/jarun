@@ -33,7 +33,7 @@ def setup_conffile(path):
     file_template = """
 [marun]
 # maven repositories in order
-repositories=%s,bintray,central
+repositories=%s bintray,central
 
 workdir=/var/lib/marun
 cachedir=/var/cache/marun/ivy

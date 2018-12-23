@@ -3,6 +3,7 @@ package jp.cccis.marun.cli;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Method;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -35,6 +36,7 @@ public class Setup {
 			if (p != null) {
 				paths.add(p);
 			} else {
+				assert System.err != null;
 				System.err.println(js);
 			}
 		}
@@ -48,7 +50,7 @@ public class Setup {
 
 	public static void main(final String... args)
 			throws ParseException, IOException, ClassNotFoundException {
-		JsonReader reader = new JsonReader(new InputStreamReader(System.in));
+		JsonReader reader = new JsonReader(new InputStreamReader(System.in, Charset.defaultCharset()));
 		GsonBuilder builder = new GsonBuilder();
 		JsonSerializer<Path> toString = (s, t, c) -> new JsonPrimitive(s.toString());
 		builder.registerTypeAdapter(Path.class, toString);
@@ -60,8 +62,10 @@ public class Setup {
 			String[] cols = args[i].split(":", 4);
 			if (3 < cols.length) {
 				requires.add(Retriever.makeRevision(cols[0], cols[1], cols[2], cols[3]));
-			} else {
+			} else if (3 == cols.length) {
 				requires.add(Retriever.makeRevision(cols[0], cols[1], cols[2]));
+			} else {
+				requires.add(Retriever.makeRevision(cols[0], cols[1], "+"));
 			}
 		}
 		MarunOutputReport reports = retriever.collect(requires, args[0]);

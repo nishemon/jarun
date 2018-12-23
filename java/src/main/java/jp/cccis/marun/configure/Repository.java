@@ -2,6 +2,7 @@ package jp.cccis.marun.configure;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Locale;
 
 import org.apache.ivy.plugins.resolver.BintrayResolver;
 import org.apache.ivy.plugins.resolver.IBiblioResolver;
@@ -37,11 +38,16 @@ public class Repository {
 		} catch (URISyntaxException e) {
 			throw new IllegalConfigurationException("Invalid baseurl '%s'", conf.baseurl);
 		}
-		if (root.getHost().contentEquals("jcenter.bintray.com")) {
+		final String host = root.getHost();
+		final String scheme = root.getScheme();
+		if (host == null || scheme == null) {
+			throw new IllegalConfigurationException("Invalid baseurl '%s'", conf.baseurl);
+		}
+		if (host.contentEquals("jcenter.bintray.com")) {
 			return new BintrayResolver();
 		}
 		RepositoryResolver ret = null;
-		switch (conf.type.toLowerCase()) {
+		switch (conf.type.toLowerCase(Locale.ENGLISH)) {
 		case "maven":
 			IBiblioResolver resolver = new IBiblioResolver();
 			resolver.setM2compatible(true);
@@ -51,8 +57,8 @@ public class Repository {
 			break;
 		}
 		if (ret != null) {
-			if (root.getScheme().contentEquals("s3")) {
-				ret.setRepository(new S3DownloadOnlyRepository(root.getHost(), conf.accessKey, conf.secretKey));
+			if (scheme.contentEquals("s3")) {
+				ret.setRepository(new S3DownloadOnlyRepository(host, conf.accessKey, conf.secretKey));
 			}
 			return ret;
 		}

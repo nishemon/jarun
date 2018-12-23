@@ -29,3 +29,4 @@ dist
 lib*
 marun.json
 test/
+git.properties

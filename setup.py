@@ -23,10 +23,10 @@ def _requires_from_file(filename):
 here = os.path.dirname(os.path.abspath(__file__))
 version = next(
     (
-        line.split('=', 2)[1].strip(" \t'")
+        line.split('=', 2)[1].strip(" \t\r\n'")
         for line in open(os.path.join(here, SRC, '__init__.py'))
         if line.startswith('__version__ = ')
-    ), '0.1.0'
+    ), '0.1.1'
 )
 
 setup(

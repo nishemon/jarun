@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -87,6 +88,7 @@ public class PodAnalyzer {
 	}
 
 	public List<Method> findStaticMethod(final String name, final Class<?>... classes) {
+		Objects.requireNonNull(name);
 		List<Method> methods = new ArrayList<>();
 		for (Class<?> clazz : this.loadedClasses) {
 			try {
@@ -106,6 +108,7 @@ public class PodAnalyzer {
 	}
 
 	public Map<Path, List<String>> getEmbededResources(final String packageNamePattern) {
+		Objects.requireNonNull(packageNamePattern);
 		Map<Path, List<String>> jarResources = new LinkedHashMap<>();
 		Pattern namePattern = Pattern.compile(packageNamePattern);
 		for (Entry ent : this.resources) {
